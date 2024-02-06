@@ -104,44 +104,38 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 
 
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 worldNormal)
+float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    // Perform perspective divide (return value in range [-1, 1]).
-    // Useless for orthographic projection but obligatory for persepctive projection.
+    // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-
-    // Transform the NDC coordinates to the range [0,1] to get a position in the depth map.
+    // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-
-    if (projCoords.z > 1.0) {
-        return 0.0;
-    }
-
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
-
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-
-    vec3 lightDir = -directional_light.world_direction; //normalize(lightPos - fragPos);
-    float bias = max(0.05 * (1.0 - dot(worldNormal, lightDir)), 0.005);
-
+    // calculate bias (based on depth map resolution and slope)
+    vec3 normal = normalize(fs_in.Normal);
+    vec3 lightDir = normalize(lightPositions[0] - fs_in.FragPos);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
-    //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-
+    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = vec2(1.0) / vec2(textureSize(shadowMap, 0));
-
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
         }
     }
     shadow /= 9.0;
+
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
 
     return shadow;
 }
@@ -223,17 +217,14 @@ void main()
     vec3 ambient = (kD * diffuse + specular) * ao;
 
     vec3 color = ambient + Lo;
-
-    // calculate shadow
-        vec4 fragPosLightSpace = lightSpaceMatrix * fragWorldPos;
-    float shadow = ShadowCalculation(fragPosLightSpace, worldNormal);
-    color *= (1.0 - shadow);
-
-
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct
     color = pow(color, vec3(1.0/1.8));
+
+    // calculate shadow
+    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+    //color = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
 
     FragColor = vec4(color , 1.0);

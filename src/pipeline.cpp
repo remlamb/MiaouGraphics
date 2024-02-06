@@ -63,6 +63,12 @@ void Pipeline::SetVec3(const std::string_view uniform, glm::vec3 vec3) {
                glm::value_ptr(vec3));
 }
 
+void Pipeline::SetVec2(const std::string_view uniform, glm::vec2 vec2) {
+  Use();
+  glUniform2fv(glGetUniformLocation(program_, uniform.data()), 1,
+               glm::value_ptr(vec2));
+}
+
 void Pipeline::SetMat4(const std::string_view uniform, glm::mat4 mat4) {
   Use();
   glUniformMatrix4fv(glGetUniformLocation(program_, uniform.data()), 1,

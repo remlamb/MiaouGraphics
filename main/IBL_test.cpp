@@ -29,10 +29,10 @@ class HelloIBLShadowmap final : public Scene {
   void renderScene(Pipeline& shader);
 
  private:
-  const std::string_view textVertexShaderFilePath_ =
-      "data/shaders/hello_IBL_model/pbr.vert";
-  const std::string_view textFragmentShaderFilePath_ =
-      "data/shaders/hello_IBL_model/pbr.frag";
+  const std::string_view VertexShaderFilePath_ =
+      "data/shaders/IBL_test/pbr.vert";
+  const std::string_view FragmentShaderFilePath_ =
+      "data/shaders/IBL_test/pbr.frag";
 
   Pipeline pbr_pipeline;
 
