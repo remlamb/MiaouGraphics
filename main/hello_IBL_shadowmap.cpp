@@ -30,30 +30,11 @@ class HelloIBLShadowmap final : public Scene {
 
  private:
   const std::string_view textVertexShaderFilePath_ =
-      "data/shaders/hello_IBL_model/pbr.vert";
+      "data/shaders/hello_IBL_model/pbr_with_shadow.vert";
   const std::string_view textFragmentShaderFilePath_ =
-      "data/shaders/hello_IBL_model/pbr.frag";
+      "data/shaders/hello_IBL_model/pbr_with_shadow.frag";
 
   Pipeline pbr_pipeline;
-
-  Texture albedo;
-  const std::string_view albedoFilePath_ =
-      "data/textures/rust/rust_basecolor.png";
-
-  Texture normal;
-  const std::string_view normalFilePath_ = "data/textures/rust/rust_normal.png";
-
-  Texture metallic;
-  const std::string_view metallicFilePath_ =
-      "data/textures/rust/rust_metallic.png";
-
-  Texture roughness;
-  const std::string_view roughnessFilePath_ =
-      "data/textures/rust/rust_roughness.png";
-
-  Texture ao;
-  const std::string_view aoFilePath_ = "data/textures/rust/rust_ao.png";
-
   Camera camera_;
 
   glm::mat4 model = glm::mat4(1.0f);
@@ -92,10 +73,6 @@ class HelloIBLShadowmap final : public Scene {
   glm::vec3 lightColors[4] = {
       glm::vec3(80.0f, 200.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f),
       glm::vec3(300.0f, 300.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f)};
-
-  int nrRows = 7;
-  int nrColumns = 7;
-  float spacing = 2.5;
 
   const std::string_view equirectangleVertexShaderFilePath_ =
       "data/shaders/hello_IBL/cubemap_hdr.vert";
@@ -163,18 +140,6 @@ class HelloIBLShadowmap final : public Scene {
       "data/model/Michelle/Michelle.obj";
   Model michelle_;
 
-  Texture mBaseColor;
-  const std::string_view mBCFilePath_ =
-      "data/model/Michelle/texture/M_Diffuse.png";
-
-  Texture mNormal;
-  const std::string_view mNFilePath_ =
-      "data/model/Michelle/texture/M_Normal.png";
-
-  Texture mGlossiness;
-  const std::string_view mGFilePath_ =
-      "data/model/Michelle/texture/M_Glossiness.png";
-
   Texture AluAlbedo;
   const std::string_view aluAFilePath_ =
       //"data/textures/Aluminum/aluminum_albedo.png";
@@ -205,13 +170,6 @@ class HelloIBLShadowmap final : public Scene {
 
   Cubemaps cubemapsHDR_;
 
-  FrameBuffer colorBuffer;
-
-  const std::string_view screenVertexShaderFilePath_ =
-      "data/shaders/hello_framebuffer/framebuffer.vert";
-  const std::string_view screenFragmentShaderFilePath_ =
-      "data/shaders/hello_framebuffer/framebuffer.frag";
-
   Pipeline screen_pipeline;
 
   const std::string_view grass2dVertexShaderFilePath_ =
@@ -219,11 +177,13 @@ class HelloIBLShadowmap final : public Scene {
   const std::string_view grass2dFragmentShaderFilePath_ =
       "data/shaders/hello_instantiate/moving_grass2d.frag";
   Pipeline grass2d_pipeline;
+
   Texture grass_texture_;
   const std::string_view grass_texture_FilePath_ = "data/textures/grass.png";
   InstantiateGrass grass_;
 
   PrimitiveObjects plane_;
+
   Texture meaAlbedo;
   const std::string_view meaAFilePath_ =
       "data/textures/Meadow/meadow_albedo.png";
@@ -298,12 +258,6 @@ void HelloIBLShadowmap::Begin() {
 
   michelle_.loadModel(michelle_model_path.data());
 
-  albedo.TextureFromFile(albedoFilePath_.data());
-  normal.TextureFromFile(normalFilePath_.data());
-  metallic.TextureFromFile(metallicFilePath_.data());
-  roughness.TextureFromFile(roughnessFilePath_.data());
-  ao.TextureFromFile(aoFilePath_.data());
-
   catBaseColor.is_uv_inverted = false;
   catBaseColor.TextureFromFile(catBaseColorFilePath_.data());
 
@@ -318,13 +272,6 @@ void HelloIBLShadowmap::Begin() {
 
   catAo.is_uv_inverted = false;
   catAo.TextureFromFile(catAoFilePath_.data());
-
-  mBaseColor.is_uv_inverted = false;
-  mBaseColor.TextureFromFile(mBCFilePath_.data());
-  mGlossiness.is_uv_inverted = false;
-  mGlossiness.TextureFromFile(mNFilePath_.data());
-  mNormal.is_uv_inverted = false;
-  mNormal.TextureFromFile(mNFilePath_.data());
 
   AluAlbedo.is_uv_inverted = false;
   AluAlbedo.TextureFromFile(aluAFilePath_.data());
@@ -389,10 +336,6 @@ void HelloIBLShadowmap::Begin() {
 
   glViewport(0, 0, Engine::screen_width_, Engine::screen_height_);
 
-  // colorBuffer.SetUpColorBuffer();
-  screen_pipeline.CreateProgram(screenVertexShaderFilePath_,
-                                screenFragmentShaderFilePath_);
-
   pbr_pipeline.SetVec3("lightPositions[0]", lightPositions[0]);
   pbr_pipeline.SetVec3("lightColors[0]", lightColors[0]);
 }
@@ -404,16 +347,10 @@ void HelloIBLShadowmap::End() {
 
 void HelloIBLShadowmap::renderScene(Pipeline& shader) {
   glm::mat4 model = glm::mat4(1.0f);
-  for (int row = 0; row < nrRows; ++row) {
-    for (int col = 0; col < nrColumns; ++col) {
-      model = glm::mat4(1.0f);
-      model = glm::translate(
-          model, glm::vec3((float)(col - (nrColumns / 2)) * spacing,
-                           (float)(row - (nrRows / 2)) * spacing, -2.0f));
-      shader.SetMat4("model", model);
-      michelle_.Draw(shader.program_);
-    }
-  }
+  model = glm::translate(model, glm::vec3(1.0f, 1.2f, -1.0f));
+  shader.SetMat4("model", model);
+  michelle_.Draw(shader.program_);
+
   model = glm::mat4(1.0f);
   model = glm::scale(model, glm::vec3(8.2f, 8.2f, 8.2f));
   shader.SetMat4("model", model);
@@ -478,48 +415,31 @@ void HelloIBLShadowmap::Update(float dt) {
   // render rows*column number of spheres with varying metallic/roughness values
   // scaled by rows and columns respectively
   glm::mat4 model = glm::mat4(1.0f);
-  for (int row = 0; row < nrRows; ++row) {
-    pbr_pipeline.SetFloat("metallic", (float)row / (float)nrRows);
-    for (int col = 0; col < nrColumns; ++col) {
-      // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces
-      // (roughness of 0.0) tend to look a bit off on direct lighting.
-      pbr_pipeline.SetFloat(
-          "roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+  pbr_pipeline.SetMat4("model", model);
+  pbr_pipeline.SetMat3("normalMatrix",
+                       glm::transpose(glm::inverse(glm::mat3(model))));
 
-      model = glm::mat4(1.0f);
-      model = glm::translate(
-          model, glm::vec3((float)(col - (nrColumns / 2)) * spacing,
-                           (float)(row - (nrRows / 2)) * spacing, -2.0f));
-      pbr_pipeline.SetMat4("model", model);
-      pbr_pipeline.SetMat3("normalMatrix",
-                           glm::transpose(glm::inverse(glm::mat3(model))));
-      // renderSphere();
-      // mBaseColor.BindTexture(GL_TEXTURE3);
-      // pbr_pipeline.SetInt("albedoMap", 3);
-      // mNormal.BindTexture(GL_TEXTURE4);
-      // pbr_pipeline.SetInt("normalMap", 4);
-      // mGlossiness.BindTexture(GL_TEXTURE6);
-      // pbr_pipeline.SetInt("roughnessMap", 6);
+  AluAlbedo.BindTexture(GL_TEXTURE3);
+  AluNormal.BindTexture(GL_TEXTURE4);
+  AluMetallic.BindTexture(GL_TEXTURE5);
+  AluRoughness.BindTexture(GL_TEXTURE6);
 
-      AluAlbedo.BindTexture(GL_TEXTURE3);
-      AluNormal.BindTexture(GL_TEXTURE4);
-      AluMetallic.BindTexture(GL_TEXTURE5);
-      AluRoughness.BindTexture(GL_TEXTURE6);
+  pbr_pipeline.SetInt("albedoMap", 3);
+  pbr_pipeline.SetInt("normalMap", 4);
+  pbr_pipeline.SetInt("metallicMap", 5);
+  pbr_pipeline.SetInt("roughnessMap", 6);
+  AluMetallic.BindTexture(GL_TEXTURE7);
+  pbr_pipeline.SetInt("aoMap", 7);
 
-      pbr_pipeline.SetInt("albedoMap", 3);
-      pbr_pipeline.SetInt("normalMap", 4);
-      pbr_pipeline.SetInt("metallicMap", 5);
-      pbr_pipeline.SetInt("roughnessMap", 6);
-      AluMetallic.BindTexture(GL_TEXTURE7);
-      pbr_pipeline.SetInt("aoMap", 7);
+  glActiveTexture(GL_TEXTURE10);
+  glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
+  pbr_pipeline.SetInt("shadowMap", 10);
 
-      glActiveTexture(GL_TEXTURE10);
-      glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
-      pbr_pipeline.SetInt("shadowMap", 10);
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(1.0f, 1.2f, -1.0f));
+  pbr_pipeline.SetMat4("model", model);
+  michelle_.Draw(pbr_pipeline.program_);
 
-      michelle_.Draw(pbr_pipeline.program_);
-    }
-  }
   model = glm::mat4(1.0f);
   model = glm::scale(model, glm::vec3(8.2f, 8.2f, 8.2f));
   pbr_pipeline.SetMat3("normalMatrix",
@@ -537,12 +457,6 @@ void HelloIBLShadowmap::Update(float dt) {
   catAo.BindTexture(GL_TEXTURE7);
   pbr_pipeline.SetInt("aoMap", 7);
 
-  /* AluAlbedo.BindTexture(GL_TEXTURE3);
-   AluNormal.BindTexture(GL_TEXTURE4);
-   AluMetallic.BindTexture(GL_TEXTURE5);
-   AluRoughness.BindTexture(GL_TEXTURE6);
-   AluAO.BindTexture(GL_TEXTURE7);*/
-
   pbr_pipeline.SetInt("albedoMap", 3);
   pbr_pipeline.SetInt("normalMap", 4);
   pbr_pipeline.SetInt("metallicMap", 5);
@@ -550,27 +464,6 @@ void HelloIBLShadowmap::Update(float dt) {
   pbr_pipeline.SetInt("aoMap", 7);
 
   cat_.Draw(pbr_pipeline.program_);
-
-  // render light source (simply re-render sphere at light positions)
-  // this looks a bit off as we use the same shader, but it'll make their
-  // positions obvious and keeps the codeprint small.
-  // for (unsigned int i = 0;
-  //     i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i) {
-  //  glm::vec3 newPos =
-  //      lightPositions[i] + glm::vec3(sin(dt * 5.0) * 5.0, 0.0, 0.0);
-  //  newPos = lightPositions[i];
-  //  pbr_pipeline.SetVec3("lightPositions[" + std::to_string(i) + "]", newPos);
-  //  pbr_pipeline.SetVec3("lightColors[" + std::to_string(i) + "]",
-  //                       lightColors[i]);
-
-  //  model = glm::mat4(1.0f);
-  //  model = glm::translate(model, newPos);
-  //  model = glm::scale(model, glm::vec3(0.5f));
-  //  pbr_pipeline.SetMat4("model", model);
-  //  pbr_pipeline.SetMat3("normalMatrix",
-  //                       glm::transpose(glm::inverse(glm::mat3(model))));
-  //  sphere_.RenderSphere();
-  //}
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, lightPositions[0]);
@@ -622,12 +515,6 @@ void HelloIBLShadowmap::Update(float dt) {
   // render skybox (render as last to prevent overdraw)
   backgroundShader.SetMat4("view", view);
   cubemapsHDR_.DrawHDR();
-
-  // SHADOW MAP BUFFER CONFLICT WITH COLOR BUFFER
-  // colorBuffer.Clear();
-  // screen_pipeline.SetInt("PostProcessingType",
-  // colorBuffer.post_process_type_); screen_pipeline.SetInt("screenTexture",
-  // 0); colorBuffer.Draw();
 }
 
 }  // namespace gpr5300
