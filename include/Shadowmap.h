@@ -21,6 +21,6 @@ class Shadowmap {
   glm::mat4 lightProjection, lightView, lightSpaceMatrix = glm::mat4(1.0f);
   Shadowmap() = default;
   void SetUp();
-  void GenerateShadowMap(glm::vec3 lightPos);
+  void GenerateShadowMap(glm::vec3 lightPos, glm::vec3 lightDir);
   void Reset();
 };

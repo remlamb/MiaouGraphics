@@ -70,6 +70,11 @@ class HelloIBLShadowmap final : public Scene {
   glm::vec3 lightPositions[1] = {
       glm::vec3(1.0f, 5.0f, 1.0f),
   };
+
+  glm::vec3 directionalLightPosition = glm::vec3(1.0f, 5.0f, 1.0f);
+  glm::vec3 directionalLightDirection =
+      glm::normalize(glm::vec3(0.0f) - directionalLightPosition);
+
   glm::vec3 lightColors[4] = {
       glm::vec3(80.0f, 200.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f),
       glm::vec3(300.0f, 300.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f)};
@@ -210,6 +215,11 @@ class HelloIBLShadowmap final : public Scene {
   const std::string_view shadow_mapping_depthFragmentShaderFilePath_ =
       "data/shaders/hello_shadowmapping/shadow_mapping_depth.frag";
 
+  // DEPTH MAP FOR INSTANTATE
+  Pipeline simpleDepthInstantiateShader;
+  const std::string_view instantiate_shadow_mapping_depthVertexShaderFilePath_ =
+      "data/shaders/hello_shadowmapping/instantiate_shadow_mapping.vert";
+
   Shadowmap shadowmap_;
 };
 
@@ -251,6 +261,10 @@ void HelloIBLShadowmap::Begin() {
 
   simpleDepthShader.CreateProgram(shadow_mapping_depthVertexShaderFilePath_,
                                   shadow_mapping_depthFragmentShaderFilePath_);
+
+  simpleDepthInstantiateShader.CreateProgram(
+      instantiate_shadow_mapping_depthVertexShaderFilePath_,
+      shadow_mapping_depthFragmentShaderFilePath_);
 
   shadowmap_.SetUp();
 
@@ -295,12 +309,6 @@ void HelloIBLShadowmap::Begin() {
   meaAO.is_uv_inverted = false;
   meaAO.TextureFromFileRepeat(meaAOFilePath_.data());
 
-  // albedo.BindTexture(GL_TEXTURE3);
-  // normal.BindTexture(GL_TEXTURE4);
-  // metallic.BindTexture(GL_TEXTURE5);
-  // roughness.BindTexture(GL_TEXTURE6);
-  // ao.BindTexture(GL_TEXTURE7);
-
   AluAlbedo.BindTexture(GL_TEXTURE3);
   AluNormal.BindTexture(GL_TEXTURE4);
   AluMetallic.BindTexture(GL_TEXTURE5);
@@ -338,6 +346,9 @@ void HelloIBLShadowmap::Begin() {
 
   pbr_pipeline.SetVec3("lightPositions[0]", lightPositions[0]);
   pbr_pipeline.SetVec3("lightColors[0]", lightColors[0]);
+
+  pbr_pipeline.SetVec3("directionalLightDirection", directionalLightDirection);
+  pbr_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
 }
 
 void HelloIBLShadowmap::End() {
@@ -352,6 +363,7 @@ void HelloIBLShadowmap::renderScene(Pipeline& shader) {
   michelle_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
   model = glm::scale(model, glm::vec3(8.2f, 8.2f, 8.2f));
   shader.SetMat4("model", model);
   cat_.Draw(shader.program_);
@@ -361,11 +373,6 @@ void HelloIBLShadowmap::renderScene(Pipeline& shader) {
   model = glm::translate(model, glm::vec3(1.0f, 1.2f, 1.0f));
   shader.SetMat4("model", model);
   plane_.RenderPlane();
-
-  // model = glm::mat4(1.0f);
-  // model = glm::scale(model, glm::vec3(8, 8, 8));
-  // shader.SetMat4("model", model);
-  // grass_.Render();
 }
 
 void HelloIBLShadowmap::Update(float dt) {
@@ -381,14 +388,23 @@ void HelloIBLShadowmap::Update(float dt) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  shadowmap_.GenerateShadowMap(lightPositions[0]);
+  shadowmap_.GenerateShadowMap(directionalLightPosition,
+                               directionalLightDirection);
   simpleDepthShader.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
   renderScene(simpleDepthShader);
+
+  // INSTANTIATE ELEMENTS
+  simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
+                                       shadowmap_.lightSpaceMatrix);
+  grass_.Render();
+
   shadowmap_.Reset();
 
+  pbr_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
   pbr_pipeline.SetVec3("viewPos", camera_.position_);
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
+
   // pbr_pipeline.SetInt("shadowMap", 10);
 
   // Enable Face culling only for 3d model
@@ -441,6 +457,7 @@ void HelloIBLShadowmap::Update(float dt) {
   michelle_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
   model = glm::scale(model, glm::vec3(8.2f, 8.2f, 8.2f));
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));

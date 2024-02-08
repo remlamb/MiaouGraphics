@@ -17,7 +17,7 @@ void InstantiateGrass::SetUp() {
       glm::mat4 model = glm::mat4(1.0f);
       float z = static_cast<float>(zIndex) * separation;
       float x = static_cast<float>(xIndex) * separation;
-      float y = -1.5f;
+      float y = 0.5f;
       model = glm::translate(model, glm::vec3(x, y, z));
 
       // TODO better random Scaling

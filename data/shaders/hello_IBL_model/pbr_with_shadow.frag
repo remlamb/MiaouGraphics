@@ -3,13 +3,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
-
-in VS_OUT {
-    vec3 FragPos;
-    vec3 Normal;
-    vec2 TexCoords;
-    vec4 FragPosLightSpace;
-} fs_in;
+in vec4 FragPosLightSpace;
 
 // material parameters
 uniform sampler2D albedoMap;
@@ -27,8 +21,12 @@ uniform sampler2D brdfLUT;
 uniform vec3 lightPositions[1];
 uniform vec3 lightColors[1];
 
+uniform vec3 directionalLightDirection;
+uniform vec3 directionalLightColor;
+
 //Shadow
 uniform sampler2D shadowMap;
+
 uniform vec3 viewPos;
 
 uniform vec3 camPos;
@@ -103,44 +101,48 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 }
 // ----------------------------------------------------------------------------
 
-
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    // perform perspective divide
+    // Perform perspective divide (return value in range [-1, 1]).
+    // Useless for orthographic projection but obligatory for persepctive projection.
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // transform to [0,1] range
+
+    // Transform the NDC coordinates to the range [0,1] to get a position in the depth map.
     projCoords = projCoords * 0.5 + 0.5;
+
+    if (projCoords.z > 1.0) {
+        return 0.0;
+    }
+
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
+
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = normalize(fs_in.Normal);
-    vec3 lightDir = normalize(lightPositions[0] - fs_in.FragPos);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+    vec3 lightDir = -directionalLightDirection; //normalize(lightPos - fragPos);
+    //float bias = max(0.05 * (1.0 - dot(worldNormal, lightDir)), 0.005);
+
+    float bias = 0.003;
     // check whether current frag pos is in shadow
-    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    vec2 texelSize = vec2(1.0) / vec2(textureSize(shadowMap, 0));
+
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
     shadow /= 9.0;
 
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if(projCoords.z > 1.0){
-        shadow = 0.0;
-        }
-
     return shadow;
 }
-
 
 
 void main()
@@ -163,14 +165,13 @@ void main()
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    for(int i = 0; i < 4; ++i)
-    {
+
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - WorldPos);
+        vec3 L = normalize(-directionalLightDirection);
         vec3 H = normalize(V + L);
-        float distance = length(lightPositions[i] - WorldPos);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = lightColors[i] * attenuation;
+        //float distance = length(lightPositions[i] - WorldPos);
+        //float attenuation = 1.0 / (distance * distance);
+        vec3 radiance = directionalLightColor;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);
@@ -196,14 +197,14 @@ void main()
         float NdotL = max(dot(N, L), 0.0);
 
         // add to outgoing radiance Lo
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-    }
+        float shadow = ShadowCalculation(FragPosLightSpace);
+        Lo += (1.0 - shadow) * (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
     // ambient lighting (we now use IBL as the ambient term)
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
-    vec3 kS = F;
-    vec3 kD = 1.0 - kS;
+    kS = F;
+    kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 
     vec3 irradiance = texture(irradianceMap, N).rgb;
@@ -213,14 +214,11 @@ void main()
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+    specular = prefilteredColor * (F * brdf.x + brdf.y);
 
     vec3 ambient = (kD * diffuse + specular) * ao;
 
     vec3 color = ambient + Lo;
-
-    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
-    color *= (1.0 - shadow);
 
     // HDR tonemapping
     color = color / (color + vec3(1.0));
