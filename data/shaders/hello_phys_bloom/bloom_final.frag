@@ -42,9 +42,9 @@ void main()
         result = bloom_none(); break;
     }
     // tone mapping
-    result = vec3(1.0) - exp(-result * exposure);
+    //result = vec3(1.0) - exp(-result * exposure);
     // also gamma correct while we're at it
-    const float gamma = 2.2;
-    result = pow(result, vec3(1.0 / gamma));
+    //const float gamma = 2.2;
+    //result = pow(result, vec3(1.0 / gamma));
     FragColor = vec4(result, 1.0);
 }

@@ -71,9 +71,9 @@ class HelloIBLShadowmap final : public Scene {
       glm::vec3(1.0f, 5.0f, 1.0f),
   };
 
-  glm::vec3 directionalLightPosition = glm::vec3(1.0f, 5.0f, 1.0f);
+  glm::vec3 directionalLightPosition = glm::vec3(1.0f, 5.0f, 0.0f);
   glm::vec3 directionalLightDirection =
-      glm::normalize(glm::vec3(0.0f) - directionalLightPosition);
+      glm::normalize(glm::vec3(-4.0f) - directionalLightPosition);
 
   glm::vec3 lightColors[4] = {
       glm::vec3(80.0f, 200.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f),
@@ -178,9 +178,9 @@ class HelloIBLShadowmap final : public Scene {
   Pipeline screen_pipeline;
 
   const std::string_view grass2dVertexShaderFilePath_ =
-      "data/shaders/hello_instantiate/moving_grass2d.vert";
+      "data/shaders/hello_IBL_model/grass_shadow.vert";
   const std::string_view grass2dFragmentShaderFilePath_ =
-      "data/shaders/hello_instantiate/moving_grass2d.frag";
+      "data/shaders/hello_IBL_model/grass_shadow.frag";
   Pipeline grass2d_pipeline;
 
   Texture grass_texture_;
@@ -349,6 +349,7 @@ void HelloIBLShadowmap::Begin() {
 
   pbr_pipeline.SetVec3("directionalLightDirection", directionalLightDirection);
   pbr_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
+
 }
 
 void HelloIBLShadowmap::End() {
@@ -397,7 +398,6 @@ void HelloIBLShadowmap::Update(float dt) {
   simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
                                        shadowmap_.lightSpaceMatrix);
   grass_.Render();
-
   shadowmap_.Reset();
 
   pbr_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
@@ -450,6 +450,7 @@ void HelloIBLShadowmap::Update(float dt) {
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
   pbr_pipeline.SetInt("shadowMap", 10);
+  grass2d_pipeline.SetInt("shadowMap", 10);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(1.0f, 1.2f, -1.0f));
@@ -521,12 +522,15 @@ void HelloIBLShadowmap::Update(float dt) {
   model = glm::mat4(1.0f);
   grass2d_pipeline.SetFloat("time", dimtime);
   grass2d_pipeline.SetFloat("windStrength", dimwindStrength);
-  grass_texture_.BindTexture(GL_TEXTURE10);
-  grass2d_pipeline.SetInt("texture1", 10);
+  grass_texture_.BindTexture(GL_TEXTURE8);
+  grass2d_pipeline.SetInt("texture1", 8);
   model = glm::scale(model, glm::vec3(8, 8, 8));
   grass2d_pipeline.SetMat4("model", model);
   grass2d_pipeline.SetMat4("view", view);
   grass2d_pipeline.SetMat4("projection", projection);
+  grass2d_pipeline.SetVec3("viewPos", camera_.position_);
+  grass2d_pipeline.SetVec3("lightPos", directionalLightPosition);
+  grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
   grass_.Render();
 
   // render skybox (render as last to prevent overdraw)
