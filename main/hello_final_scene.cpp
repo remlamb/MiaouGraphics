@@ -69,10 +69,10 @@ class HelloFinalScene final : public Scene {
   //     glm::vec3(10.0f, -10.0f, 10.0f),
   // };
   glm::vec3 lightPositions[1] = {
-      glm::vec3(-2.0f, 2.0f, 0.0f),
+      glm::vec3(-1.6f, -0.6f, -2.6f),
   };
 
-  glm::vec3 directionalLightPosition = glm::vec3(1.0f, 5.0f, 0.0f);
+  glm::vec3 directionalLightPosition = glm::vec3(-1.0f, 1.0f, 0.0f);
   glm::vec3 directionalLightDirection =
       glm::normalize(glm::vec3(-4.0f) - directionalLightPosition);
 
@@ -171,8 +171,40 @@ class HelloFinalScene final : public Scene {
   const std::string_view tableAOFilePath_ =
       "data/model/Table/cherrywood-ao.png";
 
-  const std::string_view lantern_model_path = "data/model/lantern/lantern.obj";
+  const std::string_view lantern_model_path =
+      "data/model/lantern/chinese_lantern_part1.obj";
   Model lantern_;
+  const std::string_view lantern_part2_model_path =
+      "data/model/lantern/chinese_lantern_part2.obj";
+  Model lantern_part2_;
+
+  const std::string_view trunk_model_path = "data/model/Tree/trunk.obj";
+  Model trunk_;
+  const std::string_view leaves_model_path = "data/model/Tree/leaves.obj";
+  Model leaves_;
+
+  Texture leavesTexture;
+  const std::string_view leavesTextureFilePath_ =
+      "data/model/Tree/willow_leaves.png";
+
+  Texture TrunkAlbedo;
+  const std::string_view trunkAFilePath_ = "data/model/Tree/trunk_Albedo.jpg";
+
+  Texture TrunkNormal;
+  const std::string_view trunkNFilePath_ = "data/model/Tree/trunk_Normal.jpg";
+
+  Texture TrunkRoughness;
+  const std::string_view trunkRFilePath_ =
+      "data/model/Tree/trunk_Roughness.jpg";
+
+  Texture TrunkAO;
+  const std::string_view trunkAOFilePath_ = "data/model/Tree/trunk_AO.jpg";
+
+  Pipeline blending;
+  const std::string_view blendingVertexShaderFilePath_ =
+      "data/shaders/hello_model/model.vert";
+  const std::string_view blendingFragmentShaderFilePath_ =
+      "data/shaders/hello_model/model.frag";
 
   Texture lanternAlbedo;
   const std::string_view lanternAFilePath_ =
@@ -342,6 +374,9 @@ void HelloFinalScene::Begin() {
   shaderLight.CreateProgram(light_boxVertexShaderFilePath_,
                             light_boxFragmentShaderFilePath_);
 
+  blending.CreateProgram(blendingVertexShaderFilePath_,
+                         blendingFragmentShaderFilePath_);
+
   simpleDepthInstantiateShader.CreateProgram(
       instantiate_shadow_mapping_depthVertexShaderFilePath_,
       shadow_mapping_depthFragmentShaderFilePath_);
@@ -352,7 +387,10 @@ void HelloFinalScene::Begin() {
   michelle_.loadModel(michelle_model_path.data());
   table_.loadModel(table_model_path.data());
   lantern_.loadModel(lantern_model_path.data());
+  lantern_part2_.loadModel(lantern_part2_model_path.data());
   tea_.loadModel(tea_model_path.data());
+  leaves_.loadModel(leaves_model_path.data());
+  trunk_.loadModel(trunk_model_path.data());
 
   catBaseColor.is_uv_inverted = false;
   catBaseColor.TextureFromFile(catBaseColorFilePath_.data());
@@ -379,6 +417,17 @@ void HelloFinalScene::Begin() {
   AluRoughness.TextureFromFile(aluRFilePath_.data());
   AluAO.is_uv_inverted = false;
   AluAO.TextureFromFile(aluAOFilePath_.data());
+  leavesTexture.is_uv_inverted = false;
+  leavesTexture.TextureFromFile(leavesTextureFilePath_.data());
+
+  TrunkAlbedo.is_uv_inverted = false;
+  TrunkAlbedo.TextureFromFile(trunkAFilePath_.data());
+  TrunkAO.is_uv_inverted = false;
+  TrunkAO.TextureFromFile(trunkAOFilePath_.data());
+  TrunkNormal.is_uv_inverted = false;
+  TrunkNormal.TextureFromFile(trunkNFilePath_.data());
+  TrunkRoughness.is_uv_inverted = false;
+  TrunkRoughness.TextureFromFile(trunkRFilePath_.data());
 
   meaAlbedo.is_uv_inverted = false;
   meaAlbedo.TextureFromFileRepeat(meaAFilePath_.data());
@@ -542,31 +591,38 @@ void HelloFinalScene::End() {
 
 void HelloFinalScene::renderScene(Pipeline& shader) {
   glm::mat4 model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(1.0f, 1.2f, -1.0f));
+  model = glm::translate(model, glm::vec3(0.6f, -0.8f, -1.8f));
+  model = glm::rotate(model, 3.14f, glm::vec3(0.0f, -1.0f, 0.0f));
+  model = glm::scale(model, glm::vec3(3.4f));
   shader.SetMat4("model", model);
   michelle_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
-  model = glm::scale(model, glm::vec3(8.2f, 8.2f, 8.2f));
+  model = glm::translate(model, glm::vec3(1.4f, -0.92f, -2.4f));
+  model = glm::rotate(model, 0.6f, glm::vec3(0.0f, 1.0f, 0.0f));
+  model = glm::scale(model, glm::vec3(4.2f));
   shader.SetMat4("model", model);
   cat_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(0.0f, -2.2f, -2.2f));
+  model = glm::scale(model, glm::vec3(1.0f, 1.0f, 0.6f));
+  model = glm::rotate(model, 1.58f, glm::vec3(0.0f, 1.0f, 0.0f));
   shader.SetMat4("model", model);
   table_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-0.8f, 1.8f, 0.0f));
+  model = glm::translate(model, glm::vec3(-1.6f, -0.52f, -2.6f));
   model = glm::scale(model, glm::vec3(2.0f));
   shader.SetMat4("model", model);
   lantern_.Draw(shader.program_);
+  lantern_part2_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::scale(model, glm::vec3(0.2f));
-  model = glm::translate(model, glm::vec3(1.0f, 0.0f, 1.0f));
+  model = glm::translate(model, glm::vec3(-0.6f, -0.9f, -1.8f));
+  model = glm::scale(model, glm::vec3(2.8f));
   shader.SetMat4("model", model);
-  plane_.RenderPlane();
+  tea_.Draw(shader.program_);
 }
 
 void HelloFinalScene::Update(float dt) {
@@ -587,10 +643,9 @@ void HelloFinalScene::Update(float dt) {
   simpleDepthShader.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
   renderScene(simpleDepthShader);
 
-  // INSTANTIATE ELEMENTS
-  simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
-                                       shadowmap_.lightSpaceMatrix);
-  grass_.Render();
+  //// INSTANTIATE ELEMENTS
+  //simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",shadowmap_.lightSpaceMatrix);
+  //grass_.Render();
   shadowmap_.Reset();
 
   pbr_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
@@ -645,15 +700,25 @@ void HelloFinalScene::Update(float dt) {
   grass2d_pipeline.SetInt("shadowMap", 10);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(1.0f, 1.2f, -1.0f));
-  model = glm::scale(model, glm::vec3(8.0f));
+  model = glm::translate(model, glm::vec3(0.6f, -0.8f, -1.8f));
+  model = glm::rotate(model, 3.14f, glm::vec3(0.0f, -1.0f, 0.0f));
+  model = glm::scale(model, glm::vec3(3.4f));
   pbr_pipeline.SetMat4("model", model);
+  pbr_pipeline.SetMat3("normalMatrix",
+                       glm::transpose(glm::inverse(glm::mat3(model))));
   michelle_.Draw(pbr_pipeline.program_);
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-0.6f, -0.9f, -1.8f));
+  model = glm::scale(model, glm::vec3(2.8f));
+  pbr_pipeline.SetMat4("model", model);
+  pbr_pipeline.SetMat3("normalMatrix",
+                       glm::transpose(glm::inverse(glm::mat3(model))));
   tea_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
-  model = glm::rotate(model, 0.6f, glm::vec3(0.0f, -1.0f, 0.0f));
+  model = glm::translate(model, glm::vec3(1.4f, -0.92f, -2.4f));
+  model = glm::rotate(model, 0.6f, glm::vec3(0.0f, 1.0f, 0.0f));
   model = glm::scale(model, glm::vec3(4.2f));
 
   pbr_pipeline.SetMat3("normalMatrix",
@@ -669,7 +734,8 @@ void HelloFinalScene::Update(float dt) {
   cat_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, -0.8f, -1.0f));
+  model = glm::translate(model, glm::vec3(0.0f, -2.2f, -2.2f));
+  model = glm::scale(model, glm::vec3(1.0f, 1.0f, 0.6f));
   model = glm::rotate(model, 1.58f, glm::vec3(0.0f, 1.0f, 0.0f));
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
@@ -697,7 +763,7 @@ void HelloFinalScene::Update(float dt) {
   glDisable(GL_CULL_FACE);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-0.8f, 1.8f, 0.0f));
+  model = glm::translate(model, glm::vec3(-1.6f, -0.52f, -2.6f));
   model = glm::scale(model, glm::vec3(2.0f));
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
@@ -707,10 +773,16 @@ void HelloFinalScene::Update(float dt) {
   lanternMetallic.BindTexture(GL_TEXTURE5);
   lanternRoughness.BindTexture(GL_TEXTURE6);
   lantern_.Draw(pbr_pipeline.program_);
+  AluAlbedo.BindTexture(GL_TEXTURE3);
+  AluNormal.BindTexture(GL_TEXTURE4);
+  AluMetallic.BindTexture(GL_TEXTURE5);
+  AluRoughness.BindTexture(GL_TEXTURE6);
+  AluMetallic.BindTexture(GL_TEXTURE7);
+  lantern_part2_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
   model = glm::scale(model, glm::vec3(0.4f));
-  model = glm::translate(model, glm::vec3(1.0f, -1.8f, -1.0f));
+  model = glm::translate(model, glm::vec3(1.0f, -4.0f, 0.0f));
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
@@ -722,6 +794,26 @@ void HelloFinalScene::Update(float dt) {
   meaAO.BindTexture(GL_TEXTURE7);
 
   plane_.RenderPlane();
+
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-2.2f, -1.8f, -8.2f));
+  model = glm::rotate(model, 2.1f, glm::vec3(0.0f, 1.0f, 0.0f));
+  model = glm::scale(model, glm::vec3(2.8f));
+  pbr_pipeline.SetMat4("model", model);
+  pbr_pipeline.SetMat3("normalMatrix",
+                       glm::transpose(glm::inverse(glm::mat3(model))));
+  TrunkAlbedo.BindTexture(GL_TEXTURE3);
+  TrunkNormal.BindTexture(GL_TEXTURE4);
+  TrunkRoughness.BindTexture(GL_TEXTURE6);
+  TrunkAO.BindTexture(GL_TEXTURE7);
+  trunk_.Draw(pbr_pipeline.program_);
+
+  blending.SetMat4("model", model);
+  blending.SetMat4("view", view);
+  blending.SetMat4("projection", projection);
+  leavesTexture.BindTexture(GL_TEXTURE8);
+  blending.SetInt("texture_diffuse1", 8);
+  leaves_.Draw(blending.program_);
 
   float dimtime = 2 * timer_;
   float dimwindStrength = 0.18f;  // Adjust as needed
@@ -737,6 +829,7 @@ void HelloFinalScene::Update(float dt) {
   grass2d_pipeline.SetVec3("viewPos", camera_.position_);
   grass2d_pipeline.SetVec3("lightPos", directionalLightPosition);
   grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
+  grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, 1.0f, 0.0f));
   grass_.Render();
 
   // render skybox (render as last to prevent overdraw)

@@ -1,27 +1,41 @@
 #include "InstantiateGrass.h"
 
+#include <random>
+
+float Range(float min, float max) noexcept {
+  if (min > max) {
+    float temp = min;
+    min = max;
+    max = temp;
+  }
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dis(min, max);
+
+  return dis(gen);
+}
+
 void InstantiateGrass::SetUp() {
   // Quad Grass2DMesh
   quad_.SetUpQuad();
 
   // Position Pour L'herbe
   glm::mat4* modelMatrices;
-  modelMatrices = new glm::mat4[3 * amount_];
-  float separation = 0.12f;  // Adjust the separation between objects
-  float amout_squareroot = sqrt(amount_);
-  float pos = 10;
+  elements_ = 3 * amount_ * amount_;
+  modelMatrices = new glm::mat4[elements_];
+  float separation = 0.28f;  // Adjust the separation between objects
   int i = 0;
-  int rotationPreset = 0;
-  for (unsigned int zIndex = 0; zIndex < amout_squareroot; zIndex++) {
-    for (unsigned int xIndex = 0; xIndex < amout_squareroot; xIndex++) {
+  for (unsigned int zIndex = 0; zIndex < amount_; zIndex++) {
+    for (unsigned int xIndex = 0; xIndex < amount_; xIndex++) {
       glm::mat4 model = glm::mat4(1.0f);
-      float z = static_cast<float>(zIndex) * separation;
-      float x = static_cast<float>(xIndex) * separation;
-      float y = 0.5f;
+      float z = (static_cast<float>(zIndex) * separation) - 12;
+      float x = (static_cast<float>(xIndex) * separation) - 12;
+      float y = -1.4f;
       model = glm::translate(model, glm::vec3(x, y, z));
 
       // TODO better random Scaling
-      float scale = static_cast<float>((rand() % 20) / 50.0 + 0.05);
+      float scale = Range(0.6f, 1.0f);
       model = glm::scale(model, glm::vec3(scale));
 
       // Rotation
@@ -43,8 +57,8 @@ void InstantiateGrass::SetUp() {
   unsigned int buffer;
   glGenBuffers(1, &buffer);
   glBindBuffer(GL_ARRAY_BUFFER, buffer);
-  glBufferData(GL_ARRAY_BUFFER, amount_ * sizeof(glm::mat4), &modelMatrices[0],
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, elements_ * sizeof(glm::mat4),
+               &modelMatrices[0], GL_STATIC_DRAW);
 
   glBindVertexArray(quad_.GetQuadVAO());
   // set attribute pointers for matrix (4 times vec4)
@@ -71,6 +85,6 @@ void InstantiateGrass::SetUp() {
 void InstantiateGrass::Render() {
   glBindVertexArray(quad_.GetQuadVAO());
   glDrawArraysInstanced(GL_TRIANGLES, 0, 6,
-                        amount_);  // 100 triangles of 6 vertices each
+                        elements_);  // 100 triangles of 6 vertices each
   glBindVertexArray(0);
 }

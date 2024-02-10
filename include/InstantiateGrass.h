@@ -9,7 +9,8 @@
 class InstantiateGrass {
  private:
   PrimitiveObjects quad_;
-  unsigned int amount_ = 4096;
+  unsigned int amount_ = 96;
+  float elements_;
 
  public:
   InstantiateGrass() = default;
