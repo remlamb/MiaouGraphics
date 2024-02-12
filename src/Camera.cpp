@@ -28,28 +28,37 @@ void Camera::Move(const float dt) noexcept {
   if (keys[SDL_SCANCODE_LCTRL]) {
     position_ -= up_ * (move_speed_ * dt);
   }
+  if (keys[SDL_SCANCODE_R]) {
+    freeze_rotation = true;
+  }
+  if (keys[SDL_SCANCODE_T]) {
+    freeze_rotation = false;
+  }
 }
 
 void Camera::Rotate() noexcept {
-  int pos_x, pos_y;
-  SDL_GetRelativeMouseState(&pos_x, &pos_y);
+  if (!freeze_rotation) {
+    int pos_x, pos_y;
 
-  yaw_ += pos_x * sensitivity_;
-  pitch_ -= pos_y * sensitivity_;
+    SDL_GetRelativeMouseState(&pos_x, &pos_y);
 
-  if (pitch_ > 89.0f) pitch_ = 89.0f;
-  if (pitch_ < -89.0f) pitch_ = -89.0f;
+    yaw_ += pos_x * sensitivity_;
+    pitch_ -= pos_y * sensitivity_;
 
-  // calculate the new Front vector
-  glm::vec3 front;
-  front.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
-  front.y = sin(glm::radians(pitch_));
-  front.z = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
-  front_ = glm::normalize(front);
-  // also re-calculate the Right and Up vector
-  right_ = glm::normalize(glm::cross(
-      front_, world_up_));  // normalize the vectors, because their length gets
-                            // closer to 0 the more you look up or down which
-                            // results in slower movement.
-  up_ = glm::normalize(glm::cross(right_, front_));
+    if (pitch_ > 89.0f) pitch_ = 89.0f;
+    if (pitch_ < -89.0f) pitch_ = -89.0f;
+
+    // calculate the new Front vector
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
+    front.y = sin(glm::radians(pitch_));
+    front.z = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
+    front_ = glm::normalize(front);
+    // also re-calculate the Right and Up vector
+    right_ = glm::normalize(glm::cross(
+        front_, world_up_));  // normalize the vectors, because their length
+                              // gets closer to 0 the more you look up or down
+                              // which results in slower movement.
+    up_ = glm::normalize(glm::cross(right_, front_));
+  }
 }

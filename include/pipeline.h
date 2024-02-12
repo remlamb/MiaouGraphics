@@ -28,6 +28,7 @@ class Pipeline {
   void SetMat3(const std::string_view uniform, glm::mat3 mat3);
 
   void SetFloat(const std::string_view uniform, float value);
+  void SetBool(const std::string_view uniform, bool value);
 
   void Use();
 

@@ -1,6 +1,9 @@
 #include <GL/glew.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl2.h>
 #include <stb_image.h>
 
 #include <assimp/Importer.hpp>
@@ -24,7 +27,11 @@
 namespace gpr5300 {
 class HelloFinalScene final : public Scene {
  public:
+  void CreatePipelines();
+  void LoadModels();
+  void LoadTextures();
   void Begin() override;
+  void DrawImGui() override;
   void End() override;
   void Update(float dt) override;
   void renderScene(Pipeline& shader);
@@ -37,6 +44,10 @@ class HelloFinalScene final : public Scene {
 
   Pipeline pbr_pipeline;
   Camera camera_;
+
+  const std::string_view pbrcustomFragmentShaderFilePath_ =
+      "data/shaders/hello_IBL_model/pbr_customValue.frag";
+  Pipeline pbr_custom;
 
   glm::mat4 model = glm::mat4(1.0f);
   glm::mat4 view = glm::mat4(1.0f);
@@ -60,25 +71,15 @@ class HelloFinalScene final : public Scene {
 
   Pipeline cubemaps_pipeline;
 
-  const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
-  // glm::vec3 lightPositions[4] = {
-  //     glm::vec3(-10.0f, 10.0f, 10.0f),
-  //     glm::vec3(10.0f, 10.0f, 10.0f),
-  //     glm::vec3(-10.0f, -10.0f, 10.0f),
-  //     glm::vec3(10.0f, -10.0f, 10.0f),
-  // };
-  glm::vec3 lightPositions[1] = {
-      glm::vec3(-1.6f, -0.6f, -2.6f),
-  };
+  glm::vec3 lightPosition = glm::vec3(-1.6f, -0.6f, -2.6f);
+  float lightRed = 0.01f;
+  float lightGreen = 2.8f;
+  float lightBlue = 10.0f;
+  glm::vec3 lightColor = glm::vec3(lightRed, lightGreen, lightBlue);
 
   glm::vec3 directionalLightPosition = glm::vec3(-1.0f, 1.0f, 0.0f);
   glm::vec3 directionalLightDirection =
       glm::normalize(glm::vec3(-4.0f) - directionalLightPosition);
-
-  glm::vec3 lightColors[4] = {
-      glm::vec3(0.0f, 2.8f, 10.0f), glm::vec3(300.0f, 300.0f, 300.0f),
-      glm::vec3(300.0f, 300.0f, 300.0f), glm::vec3(300.0f, 300.0f, 300.0f)};
 
   const std::string_view equirectangleVertexShaderFilePath_ =
       "data/shaders/hello_IBL/cubemap_hdr.vert";
@@ -124,23 +125,23 @@ class HelloFinalScene final : public Scene {
 
   Texture catBaseColor;
   const std::string_view catBaseColorFilePath_ =
-      "data/model/cat/png_texture/cat_diff.png";
+      "data/model/cat/png_texture/cat_diff_2k.png";
 
   Texture catNormal;
   const std::string_view catNormalFilePath_ =
-      "data/model/cat/png_texture/cat_nor_gl.png";
+      "data/model/cat/png_texture/cat_nor_2k.png";
 
   Texture catMetallic;
   const std::string_view catMetallicFilePath_ =
-      "data/model/cat/png_texture/cat_metal.png";
+      "data/model/cat/png_texture/cat_metal_2k.png";
 
   Texture catRoughness;
   const std::string_view catRoughnessFilePath_ =
-      "data/model/cat/png_texture/cat_rough.png";
+      "data/model/cat/png_texture/cat_rough_2k.png";
 
   Texture catAo;
   const std::string_view catAoFilePath_ =
-      "data/model/cat/png_texture/cat_ao.png";
+      "data/model/cat/png_texture/cat_ao_2k.png";
 
   const std::string_view michelle_model_path = "data/model/Flower/Flower.obj";
   Model michelle_;
@@ -178,28 +179,29 @@ class HelloFinalScene final : public Scene {
       "data/model/lantern/chinese_lantern_part2.obj";
   Model lantern_part2_;
 
-  const std::string_view trunk_model_path = "data/model/Tree/trunk.obj";
-  Model trunk_;
-  const std::string_view leaves_model_path = "data/model/Tree/leaves.obj";
-  Model leaves_;
+  /*
+const std::string_view trunk_model_path = "data/model/Tree/trunk.obj";
+Model trunk_;
+const std::string_view leaves_model_path = "data/model/Tree/leaves.obj";
+Model leaves_;
 
-  Texture leavesTexture;
-  const std::string_view leavesTextureFilePath_ =
-      "data/model/Tree/willow_leaves.png";
+Texture leavesTexture;
+const std::string_view leavesTextureFilePath_ =
+    "data/model/Tree/willow_leaves.png";
 
-  Texture TrunkAlbedo;
-  const std::string_view trunkAFilePath_ = "data/model/Tree/trunk_Albedo.jpg";
+Texture TrunkAlbedo;
+const std::string_view trunkAFilePath_ = "data/model/Tree/trunk_Albedo.jpg";
 
-  Texture TrunkNormal;
-  const std::string_view trunkNFilePath_ = "data/model/Tree/trunk_Normal.jpg";
+Texture TrunkNormal;
+const std::string_view trunkNFilePath_ = "data/model/Tree/trunk_Normal.jpg";
 
-  Texture TrunkRoughness;
-  const std::string_view trunkRFilePath_ =
-      "data/model/Tree/trunk_Roughness.jpg";
+Texture TrunkRoughness;
+const std::string_view trunkRFilePath_ =
+    "data/model/Tree/trunk_Roughness.jpg";
 
-  Texture TrunkAO;
-  const std::string_view trunkAOFilePath_ = "data/model/Tree/trunk_AO.jpg";
-
+Texture TrunkAO;
+const std::string_view trunkAOFilePath_ = "data/model/Tree/trunk_AO.jpg";
+*/
   Pipeline blending;
   const std::string_view blendingVertexShaderFilePath_ =
       "data/shaders/hello_model/model.vert";
@@ -208,45 +210,39 @@ class HelloFinalScene final : public Scene {
 
   Texture lanternAlbedo;
   const std::string_view lanternAFilePath_ =
-      "data/model/lantern/lantern_BaseColor.png";
+      "data/model/lantern/lantern_BaseColor2k.png";
 
   Texture lanternNormal;
   const std::string_view lanternNFilePath_ =
-      "data/model/lantern/lantern_Normal.png";
+      "data/model/lantern/lantern_Normal2k.png";
 
   Texture lanternRoughness;
   const std::string_view lanternRFilePath_ =
-      "data/model/lantern/lantern_Roughness.png";
+      "data/model/lantern/lantern_Roughness2k.png";
 
   Texture lanternMetallic;
   const std::string_view lanternMFilePath_ =
-      "data/model/lantern/lantern_Metallic.png";
+      "data/model/lantern/lantern_Metallic2k.png";
 
-  Texture AluAlbedo;
-  const std::string_view aluAFilePath_ =
-      //"data/textures/Aluminum/aluminum_albedo.png";
+  Texture goldAlbedo;
+  const std::string_view goldAFilePath =
       "data/textures/Gold/gold_basecolor.png";
 
-  Texture AluNormal;
-  const std::string_view aluNFilePath_ =
-      //"data/textures/Aluminum/aluminum_normal.png";
-      "data/textures/Gold/gold_normal.png";
+  Texture goldNormal;
+  const std::string_view goldNFilePath_ = "data/textures/Gold/gold_normal.png";
 
-  Texture AluMetallic;
-  const std::string_view aluMFilePath_ =
-      //"data/textures/Aluminum/aluminum_metallic.png";
+  Texture goldMetallic;
+  const std::string_view goldMFilePath_ =
       "data/textures/Gold/gold_metallic.png";
 
-  Texture AluRoughness;
-  const std::string_view aluRFilePath_ =
-      // "data/textures/Aluminum/aluminum_roughness.png";
+  Texture goldRoughness;
+  const std::string_view goldRFilePath_ =
       "data/textures/Gold/gold_roughness.png";
 
-  Texture AluAO;
-  const std::string_view aluAOFilePath_ =
+  Texture goldAO;
+  const std::string_view goldAOFilePath_ =
       "data/textures/Aluminum/aluminum_ao.png";
 
-  // PrimitiveObjects quad_;
   PrimitiveObjects cube_;
   PrimitiveObjects sphere_;
 
@@ -326,30 +322,23 @@ class HelloFinalScene final : public Scene {
   const std::string_view bloomFinalVertexShaderFilePath_ =
       "data/shaders/hello_phys_bloom/bloom_final.vert";
   const std::string_view bloomFinalFragmentShaderFilePath_ =
-      "data/shaders/hello_phys_bloom/bloom_final.frag";
+      "data/shaders/hello_phys_bloom/colorshader.frag";
   Pipeline shaderBloomFinal;
+
+  // IMGUI Elements
+  bool main_window = true;
+  bool show_another_window = true;
+  bool instantiate_grass_ = true;
+  bool black_white_filter_ = false;
+
+  float flower_roughness = 0.1f;
+  float flower_metalic = 0.1f;
+  float flower_ao = 1.0f;
 };
 
-void HelloFinalScene::Begin() {
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LEQUAL);
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-  // quad_.SetUpQuad();
-  cube_.SetUpCube();
-  sphere_.SetUpSphere();
-  lightCube_.SetUpCubeOpenGL();
-  plane_.SetUpPlane();
-  bloomquad_.SetUpQuadbrdf();
-
+void HelloFinalScene::CreatePipelines() {
   grass2d_pipeline.CreateProgram(grass2dVertexShaderFilePath_,
                                  grass2dFragmentShaderFilePath_);
-  grass_texture_.is_uv_inverted = false;
-  grass_texture_.TextureFromFile(grass_texture_FilePath_);
-  grass_.SetUp();
-
-  hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
-
   pbr_pipeline.CreateProgram(textVertexShaderFilePath_,
                              textFragmentShaderFilePath_);
 
@@ -381,90 +370,92 @@ void HelloFinalScene::Begin() {
       instantiate_shadow_mapping_depthVertexShaderFilePath_,
       shadow_mapping_depthFragmentShaderFilePath_);
 
-  shadowmap_.SetUp();
+  pbr_custom.CreateProgram(textVertexShaderFilePath_,
+                           pbrcustomFragmentShaderFilePath_);
+}
 
+void HelloFinalScene::LoadModels() {
   cat_.loadModel(cat_model_path.data());
   michelle_.loadModel(michelle_model_path.data());
   table_.loadModel(table_model_path.data());
   lantern_.loadModel(lantern_model_path.data());
   lantern_part2_.loadModel(lantern_part2_model_path.data());
   tea_.loadModel(tea_model_path.data());
-  leaves_.loadModel(leaves_model_path.data());
-  trunk_.loadModel(trunk_model_path.data());
+}
 
-  catBaseColor.is_uv_inverted = false;
-  catBaseColor.TextureFromFile(catBaseColorFilePath_.data());
+void HelloFinalScene::LoadTextures() {
+  catBaseColor.TextureFromFile(catBaseColorFilePath_.data(), false);
+  catNormal.TextureFromFile(catNormalFilePath_.data(), false);
+  catMetallic.TextureFromFile(catMetallicFilePath_.data(), false);
+  catRoughness.TextureFromFile(catRoughnessFilePath_.data(), false);
+  catAo.TextureFromFile(catAoFilePath_.data(), false);
 
-  catNormal.is_uv_inverted = false;
-  catNormal.TextureFromFile(catNormalFilePath_.data());
+  goldAlbedo.TextureFromFile(goldAFilePath.data(), false);
+  goldMetallic.TextureFromFile(goldMFilePath_.data(), false);
+  goldNormal.TextureFromFile(goldNFilePath_.data(), false);
+  goldRoughness.TextureFromFile(goldRFilePath_.data(), false);
+  goldAO.TextureFromFile(goldAOFilePath_.data(), false);
 
-  catMetallic.is_uv_inverted = false;
-  catMetallic.TextureFromFile(catMetallicFilePath_.data());
-
-  catRoughness.is_uv_inverted = false;
-  catRoughness.TextureFromFile(catRoughnessFilePath_.data());
-
-  catAo.is_uv_inverted = false;
-  catAo.TextureFromFile(catAoFilePath_.data());
-
-  AluAlbedo.is_uv_inverted = false;
-  AluAlbedo.TextureFromFile(aluAFilePath_.data());
-  AluMetallic.is_uv_inverted = false;
-  AluMetallic.TextureFromFile(aluMFilePath_.data());
-  AluNormal.is_uv_inverted = false;
-  AluNormal.TextureFromFile(aluNFilePath_.data());
-  AluRoughness.is_uv_inverted = false;
-  AluRoughness.TextureFromFile(aluRFilePath_.data());
-  AluAO.is_uv_inverted = false;
-  AluAO.TextureFromFile(aluAOFilePath_.data());
-  leavesTexture.is_uv_inverted = false;
-  leavesTexture.TextureFromFile(leavesTextureFilePath_.data());
-
-  TrunkAlbedo.is_uv_inverted = false;
-  TrunkAlbedo.TextureFromFile(trunkAFilePath_.data());
-  TrunkAO.is_uv_inverted = false;
-  TrunkAO.TextureFromFile(trunkAOFilePath_.data());
-  TrunkNormal.is_uv_inverted = false;
-  TrunkNormal.TextureFromFile(trunkNFilePath_.data());
-  TrunkRoughness.is_uv_inverted = false;
-  TrunkRoughness.TextureFromFile(trunkRFilePath_.data());
-
-  meaAlbedo.is_uv_inverted = false;
   meaAlbedo.TextureFromFileRepeat(meaAFilePath_.data());
-  meaMetallic.is_uv_inverted = false;
   meaMetallic.TextureFromFileRepeat(meaMFilePath_.data());
-  meaNormal.is_uv_inverted = false;
   meaNormal.TextureFromFileRepeat(meaNFilePath_.data());
-  meaRoughness.is_uv_inverted = false;
   meaRoughness.TextureFromFileRepeat(meaRFilePath_.data());
-  meaAO.is_uv_inverted = false;
   meaAO.TextureFromFileRepeat(meaAOFilePath_.data());
 
-  TableAlbedo.is_uv_inverted = false;
-  TableAlbedo.TextureFromFile(tableAFilePath_.data());
-  TableNormal.is_uv_inverted = false;
-  TableNormal.TextureFromFile(tableNFilePath_.data());
-  TableMetallic.is_uv_inverted = false;
-  TableMetallic.TextureFromFile(tableMFilePath_.data());
-  TableRoughness.is_uv_inverted = false;
-  TableRoughness.TextureFromFile(tableRFilePath_.data());
-  TableAO.is_uv_inverted = false;
-  TableAO.TextureFromFile(tableAOFilePath_.data());
+  TableAlbedo.TextureFromFile(tableAFilePath_.data(), false);
+  TableNormal.TextureFromFile(tableNFilePath_.data(), false);
+  TableMetallic.TextureFromFile(tableMFilePath_.data(), false);
+  TableRoughness.TextureFromFile(tableRFilePath_.data(), false);
+  TableAO.TextureFromFile(tableAOFilePath_.data(), false);
 
-  lanternAlbedo.is_uv_inverted = false;
-  lanternAlbedo.TextureFromFile(lanternAFilePath_.data());
-  lanternNormal.is_uv_inverted = false;
-  lanternNormal.TextureFromFile(lanternNFilePath_.data());
-  lanternMetallic.is_uv_inverted = false;
-  lanternMetallic.TextureFromFile(lanternMFilePath_.data());
-  lanternRoughness.is_uv_inverted = false;
-  lanternRoughness.TextureFromFile(lanternRFilePath_.data());
+  lanternAlbedo.TextureFromFile(lanternAFilePath_.data(), false);
+  lanternNormal.TextureFromFile(lanternNFilePath_.data(), false);
+  lanternMetallic.TextureFromFile(lanternMFilePath_.data(), false);
+  lanternRoughness.TextureFromFile(lanternRFilePath_.data(), false);
 
-  AluAlbedo.BindTexture(GL_TEXTURE3);
-  AluNormal.BindTexture(GL_TEXTURE4);
-  AluMetallic.BindTexture(GL_TEXTURE5);
-  AluRoughness.BindTexture(GL_TEXTURE6);
-  AluAO.BindTexture(GL_TEXTURE7);
+  grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
+}
+
+void HelloFinalScene::Begin() {
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+  // quad_.SetUpQuad();
+  cube_.SetUpCube();
+  sphere_.SetUpSphere();
+  lightCube_.SetUpCubeOpenGL();
+  plane_.SetUpPlane();
+  bloomquad_.SetUpQuadbrdf();
+
+  CreatePipelines();
+  LoadModels();
+  LoadTextures();
+
+  grass_.SetUp();
+  hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
+  shadowmap_.SetUp();
+
+  // leaves_.loadModel(leaves_model_path.data());
+  // trunk_.loadModel(trunk_model_path.data());
+
+  // leavesTexture.is_uv_inverted = false;
+  // leavesTexture.TextureFromFile(leavesTextureFilePath_.data());
+
+  // TrunkAlbedo.is_uv_inverted = false;
+  // TrunkAlbedo.TextureFromFile(trunkAFilePath_.data());
+  // TrunkAO.is_uv_inverted = false;
+  // TrunkAO.TextureFromFile(trunkAOFilePath_.data());
+  // TrunkNormal.is_uv_inverted = false;
+  // TrunkNormal.TextureFromFile(trunkNFilePath_.data());
+  // TrunkRoughness.is_uv_inverted = false;
+  // TrunkRoughness.TextureFromFile(trunkRFilePath_.data());
+
+  goldAlbedo.BindTexture(GL_TEXTURE3);
+  goldNormal.BindTexture(GL_TEXTURE4);
+  goldMetallic.BindTexture(GL_TEXTURE5);
+  goldRoughness.BindTexture(GL_TEXTURE6);
+  goldAO.BindTexture(GL_TEXTURE7);
 
   pbr_pipeline.SetInt("irradianceMap", 0);
   pbr_pipeline.SetInt("prefilterMap", 1);
@@ -474,6 +465,16 @@ void HelloFinalScene::Begin() {
   pbr_pipeline.SetInt("metallicMap", 5);
   pbr_pipeline.SetInt("roughnessMap", 6);
   pbr_pipeline.SetInt("aoMap", 7);
+
+  pbr_custom.SetInt("irradianceMap", 0);
+  pbr_custom.SetInt("prefilterMap", 1);
+  pbr_custom.SetInt("brdfLUT", 2);
+  pbr_custom.SetInt("albedoMap", 3);
+  pbr_custom.SetInt("normalMap", 4);
+  pbr_custom.SetInt("shadowMap", 10);
+  pbr_custom.SetVec3("lightPositions[0]", lightPosition);
+  pbr_custom.SetVec3("directionalLightDirection", directionalLightDirection);
+  pbr_custom.SetVec3("directionalLightColor", glm::vec3(1.0f));
 
   backgroundShader.SetInt("environmentMap", 0);
   pbr_pipeline.SetInt("shadowMap", 10);
@@ -491,12 +492,13 @@ void HelloFinalScene::Begin() {
                                 0.1f, 100.0f);
 
   pbr_pipeline.SetMat4("projection", projection);
+  pbr_custom.SetMat4("projection", projection);
   backgroundShader.SetMat4("projection", projection);
 
   glViewport(0, 0, Engine::screen_width_, Engine::screen_height_);
 
-  pbr_pipeline.SetVec3("lightPositions[0]", lightPositions[0]);
-  pbr_pipeline.SetVec3("lightColors[0]", lightColors[0]);
+  pbr_pipeline.SetVec3("lightPositions[0]", lightPosition);
+  pbr_pipeline.SetVec3("lightColors[0]", lightColor);
 
   pbr_pipeline.SetVec3("directionalLightDirection", directionalLightDirection);
   pbr_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
@@ -584,9 +586,67 @@ void HelloFinalScene::Begin() {
   bloomRenderer.Init(Engine::screen_width_, Engine::screen_height_);
 }
 
+void HelloFinalScene::DrawImGui() {
+  if (main_window) ImGui::ShowDemoWindow(&main_window);
+  {
+    static float f = 0.0f;
+    static int counter = 0;
+
+    ImGui::Begin("Miaou Settings :");  // Create a window called "Hello,
+                                       // world!" and append into it.
+
+    ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
+                       "Welcome to xiequ yuan !");
+    if (ImGui::CollapsingHeader("Camera control")) {
+      ImGui::Text("W : move toward, S : move Backward");
+      ImGui::Text("A : move left, D : move right");
+      ImGui::Text("SPACE : move Up, CTRL : move Down");
+      ImGui::Text("Camera rotate with the mouse position");
+      ImGui::Text("R : Freeze Camera Rotation");
+      ImGui::Text("T : reActive Camera Rotation");
+    }
+
+    if (ImGui::CollapsingHeader("IBL Settings : ")) {
+      ImGui::Text("Change Flower Value : ");
+      ImGui::SliderFloat("Roughness", &flower_roughness, 0.05f, 1.0f);
+      ImGui::SliderFloat("Metalic", &flower_metalic, 0.05f, 1.0f);
+      ImGui::SliderFloat("AO", &flower_ao, 0.05f, 1.0f);
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "R : Freeze Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "T : reActive Camera Rotation");
+    }
+
+    if (ImGui::CollapsingHeader("Instantiate")) {
+      ImGui::Checkbox("Show Grass", &instantiate_grass_);
+    }
+
+    if (ImGui::CollapsingHeader("Lightning")) {
+      ImGui::Text("Change Point Light Color : ");
+      ImGui::SliderFloat("Red", &lightRed, 0.01f, 10.0f);
+      ImGui::SliderFloat("Green", &lightGreen, 0.01f, 10.0f);
+      ImGui::SliderFloat("Blue", &lightBlue, 0.01f, 10.0f);
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "R : Freeze Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "T : reActive Camera Rotation");
+    }
+
+    if (ImGui::CollapsingHeader("Post Processing")) {
+      ImGui::Checkbox("Black and White Filter", &black_white_filter_);
+    }
+
+    ImGui::Checkbox(
+        "Demo Window",
+        &main_window);  // Edit bools storing our window open/close state
+  }
+}
+
 void HelloFinalScene::End() {
   // Unload program/pipeline
   cubemaps_.Delete();
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui::DestroyContext();
 }
 
 void HelloFinalScene::renderScene(Pipeline& shader) {
@@ -633,6 +693,9 @@ void HelloFinalScene::Update(float dt) {
   camera_.Update(dt);
   view = camera_.view_;
 
+  lightColor = glm::vec3(lightRed, lightGreen, lightBlue);
+  pbr_pipeline.SetVec3("lightColors[0]", lightColor);
+  pbr_custom.SetVec3("lightColors[0]", lightColor);
   // render
   // ------
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -644,12 +707,17 @@ void HelloFinalScene::Update(float dt) {
   renderScene(simpleDepthShader);
 
   //// INSTANTIATE ELEMENTS
-  //simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",shadowmap_.lightSpaceMatrix);
-  //grass_.Render();
+  if (instantiate_grass_) {
+    simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
+                                         shadowmap_.lightSpaceMatrix);
+    grass_.Render();
+  }
+
   shadowmap_.Reset();
 
   pbr_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
   pbr_pipeline.SetVec3("viewPos", camera_.position_);
+
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
 
@@ -688,11 +756,11 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
 
-  AluAlbedo.BindTexture(GL_TEXTURE3);
-  AluNormal.BindTexture(GL_TEXTURE4);
-  AluMetallic.BindTexture(GL_TEXTURE5);
-  AluRoughness.BindTexture(GL_TEXTURE6);
-  AluMetallic.BindTexture(GL_TEXTURE7);
+  goldAlbedo.BindTexture(GL_TEXTURE3);
+  goldNormal.BindTexture(GL_TEXTURE4);
+  goldMetallic.BindTexture(GL_TEXTURE5);
+  goldRoughness.BindTexture(GL_TEXTURE6);
+  goldMetallic.BindTexture(GL_TEXTURE7);
 
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
@@ -703,10 +771,18 @@ void HelloFinalScene::Update(float dt) {
   model = glm::translate(model, glm::vec3(0.6f, -0.8f, -1.8f));
   model = glm::rotate(model, 3.14f, glm::vec3(0.0f, -1.0f, 0.0f));
   model = glm::scale(model, glm::vec3(3.4f));
-  pbr_pipeline.SetMat4("model", model);
-  pbr_pipeline.SetMat3("normalMatrix",
-                       glm::transpose(glm::inverse(glm::mat3(model))));
-  michelle_.Draw(pbr_pipeline.program_);
+  pbr_custom.SetMat4("model", model);
+  pbr_custom.SetMat4("view", view);
+  pbr_custom.SetMat3("normalMatrix",
+                     glm::transpose(glm::inverse(glm::mat3(model))));
+  pbr_custom.SetFloat("metallic", flower_metalic);
+  pbr_custom.SetFloat("roughness", flower_roughness);
+  pbr_custom.SetFloat("ao", flower_ao);
+
+  pbr_custom.SetVec3("viewPos", camera_.position_);
+  pbr_custom.SetVec3("camPos", camera_.position_);
+  pbr_custom.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
+  michelle_.Draw(pbr_custom.program_);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(-0.6f, -0.9f, -1.8f));
@@ -748,12 +824,12 @@ void HelloFinalScene::Update(float dt) {
   table_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(lightPositions[0]));
+  model = glm::translate(model, glm::vec3(lightPosition));
   model = glm::scale(model, glm::vec3(0.2f));
   model = glm::scale(model, glm::vec3(0.4f, 1.0f, 0.4f));
   shaderLight.SetMat4("model", model);
 
-  shaderLight.SetVec3("lightColor", lightColors[0]);
+  shaderLight.SetVec3("lightColor", lightColor);
   shaderLight.SetMat4("projection", projection);
   shaderLight.SetMat4("view", view);
   // lightCube_.RenderCubeOpenGL();
@@ -773,11 +849,11 @@ void HelloFinalScene::Update(float dt) {
   lanternMetallic.BindTexture(GL_TEXTURE5);
   lanternRoughness.BindTexture(GL_TEXTURE6);
   lantern_.Draw(pbr_pipeline.program_);
-  AluAlbedo.BindTexture(GL_TEXTURE3);
-  AluNormal.BindTexture(GL_TEXTURE4);
-  AluMetallic.BindTexture(GL_TEXTURE5);
-  AluRoughness.BindTexture(GL_TEXTURE6);
-  AluMetallic.BindTexture(GL_TEXTURE7);
+  goldAlbedo.BindTexture(GL_TEXTURE3);
+  goldNormal.BindTexture(GL_TEXTURE4);
+  goldMetallic.BindTexture(GL_TEXTURE5);
+  goldRoughness.BindTexture(GL_TEXTURE6);
+  goldMetallic.BindTexture(GL_TEXTURE7);
   lantern_part2_.Draw(pbr_pipeline.program_);
 
   model = glm::mat4(1.0f);
@@ -795,42 +871,43 @@ void HelloFinalScene::Update(float dt) {
 
   plane_.RenderPlane();
 
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-2.2f, -1.8f, -8.2f));
-  model = glm::rotate(model, 2.1f, glm::vec3(0.0f, 1.0f, 0.0f));
-  model = glm::scale(model, glm::vec3(2.8f));
-  pbr_pipeline.SetMat4("model", model);
-  pbr_pipeline.SetMat3("normalMatrix",
-                       glm::transpose(glm::inverse(glm::mat3(model))));
-  TrunkAlbedo.BindTexture(GL_TEXTURE3);
-  TrunkNormal.BindTexture(GL_TEXTURE4);
-  TrunkRoughness.BindTexture(GL_TEXTURE6);
-  TrunkAO.BindTexture(GL_TEXTURE7);
-  trunk_.Draw(pbr_pipeline.program_);
+  /* model = glm::mat4(1.0f);
+   model = glm::translate(model, glm::vec3(-2.2f, -1.8f, -8.2f));
+   model = glm::rotate(model, 2.1f, glm::vec3(0.0f, 1.0f, 0.0f));
+   model = glm::scale(model, glm::vec3(2.8f));
+   pbr_pipeline.SetMat4("model", model);
+   pbr_pipeline.SetMat3("normalMatrix",
+                        glm::transpose(glm::inverse(glm::mat3(model))));*/
+  // TrunkAlbedo.BindTexture(GL_TEXTURE3);
+  // TrunkNormal.BindTexture(GL_TEXTURE4);
+  // TrunkRoughness.BindTexture(GL_TEXTURE6);
+  // TrunkAO.BindTexture(GL_TEXTURE7);
+  // trunk_.Draw(pbr_pipeline.program_);
 
-  blending.SetMat4("model", model);
-  blending.SetMat4("view", view);
-  blending.SetMat4("projection", projection);
-  leavesTexture.BindTexture(GL_TEXTURE8);
-  blending.SetInt("texture_diffuse1", 8);
-  leaves_.Draw(blending.program_);
-
-  float dimtime = 2 * timer_;
-  float dimwindStrength = 0.18f;  // Adjust as needed
-  model = glm::mat4(1.0f);
-  grass2d_pipeline.SetFloat("time", dimtime);
-  grass2d_pipeline.SetFloat("windStrength", dimwindStrength);
-  grass_texture_.BindTexture(GL_TEXTURE8);
-  grass2d_pipeline.SetInt("texture1", 8);
-  model = glm::scale(model, glm::vec3(8, 8, 8));
-  grass2d_pipeline.SetMat4("model", model);
-  grass2d_pipeline.SetMat4("view", view);
-  grass2d_pipeline.SetMat4("projection", projection);
-  grass2d_pipeline.SetVec3("viewPos", camera_.position_);
-  grass2d_pipeline.SetVec3("lightPos", directionalLightPosition);
-  grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
-  grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, 1.0f, 0.0f));
-  grass_.Render();
+  // blending.SetMat4("model", model);
+  // blending.SetMat4("view", view);
+  // blending.SetMat4("projection", projection);
+  // leavesTexture.BindTexture(GL_TEXTURE8);
+  // blending.SetInt("texture_diffuse1", 8);
+  // leaves_.Draw(blending.program_);
+  if (instantiate_grass_) {
+    float dimtime = 2 * timer_;
+    float dimwindStrength = 0.18f;  // Adjust as needed
+    model = glm::mat4(1.0f);
+    grass2d_pipeline.SetFloat("time", dimtime);
+    grass2d_pipeline.SetFloat("windStrength", dimwindStrength);
+    grass_texture_.BindTexture(GL_TEXTURE8);
+    grass2d_pipeline.SetInt("texture1", 8);
+    model = glm::scale(model, glm::vec3(8, 8, 8));
+    grass2d_pipeline.SetMat4("model", model);
+    grass2d_pipeline.SetMat4("view", view);
+    grass2d_pipeline.SetMat4("projection", projection);
+    grass2d_pipeline.SetVec3("viewPos", camera_.position_);
+    grass2d_pipeline.SetVec3("lightPos", directionalLightPosition);
+    grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
+    grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, 1.0f, 0.0f));
+    grass_.Render();
+  }
 
   // render skybox (render as last to prevent overdraw)
   backgroundShader.SetMat4("view", view);
@@ -869,6 +946,7 @@ void HelloFinalScene::Update(float dt) {
   }
   shaderBloomFinal.SetInt("programChoice", programChoice);
   shaderBloomFinal.SetFloat("exposure", exposure);
+  shaderBloomFinal.SetBool("BnWFilter", black_white_filter_);
   bloomquad_.RenderQuadbrdf();
 }
 

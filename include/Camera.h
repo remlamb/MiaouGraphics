@@ -4,11 +4,8 @@
 #include <glm/ext/matrix_transform.hpp>
 
 class Camera {
-
-
   glm::vec3 target_ = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 direction_ = glm::normalize(position_ - target_);
-
 
   glm::vec3 up_ = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::vec3 right_ = glm::normalize(glm::cross(up_, direction_));
@@ -20,6 +17,7 @@ class Camera {
   const float sensitivity_ = 0.1f;
 
   const glm::vec3 world_up_ = up_;
+  bool freeze_rotation = false;
 
  public:
   Camera() = default;

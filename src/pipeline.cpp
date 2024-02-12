@@ -86,6 +86,10 @@ void Pipeline::SetFloat(const std::string_view uniform, float value) {
   glUniform1f(glGetUniformLocation(program_, uniform.data()), value);
 }
 
+void Pipeline::SetBool(const std::string_view uniform, bool value) {
+  SetInt(uniform, value);
+}
+
 void Pipeline::Use() {
   if (current_program_ != program_) {
     glUseProgram(program_);

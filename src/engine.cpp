@@ -101,7 +101,7 @@ namespace gpr5300
         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
         constexpr auto windowSize = glm::ivec2(screen_width_, screen_height_);
         window_ = SDL_CreateWindow(
-            "Xiequ_Yuan OpenGL",
+            "Miaou Graphics",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             windowSize.x,

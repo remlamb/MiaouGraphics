@@ -125,6 +125,12 @@ void Texture::TextureFromFile(std::string_view file_path) {
   stbi_image_free(data);
 }
 
+void Texture::TextureFromFile(std::string_view file_path,  bool is_inverted)
+{
+  is_uv_inverted = is_inverted;
+  TextureFromFile(file_path);
+}
+
 
 void Texture::TextureFromFileRepeat(std::string_view file_path) {
   stbi_set_flip_vertically_on_load(is_uv_inverted);
@@ -203,6 +209,7 @@ void Texture::BindTexture(GLenum textureUnit) {
 
 void Texture::BindTextureHDR(GLenum textureUnit) {
   glActiveTexture(textureUnit);
+
   glBindTexture(GL_TEXTURE_2D, hdrTexture);
 }
 
