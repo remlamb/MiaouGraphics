@@ -9,6 +9,7 @@
 #include <assimp/Importer.hpp>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sstream>
 
 #include "Bloom.h"
@@ -25,7 +26,7 @@
 #include "scene.h"
 
 namespace gpr5300 {
-class HelloFinalScene final : public Scene {
+class HelloFinalSceneSSAO final : public Scene {
  public:
   void CreatePipelines();
   void LoadModels();
@@ -40,7 +41,7 @@ class HelloFinalScene final : public Scene {
   const std::string_view textVertexShaderFilePath_ =
       "data/shaders/hello_IBL_model/pbr_with_shadow_multiplelight.vert";
   const std::string_view textFragmentShaderFilePath_ =
-      "data/shaders/hello_IBL_model/pbr_with_shadow_multiplelight.frag";
+      "data/shaders/hello_IBL_model/pbr_with_shadow_SSAO.frag";
 
   Pipeline pbr_pipeline;
   Camera camera_;
@@ -311,9 +312,48 @@ class HelloFinalScene final : public Scene {
   float flower_roughness = 0.1f;
   float flower_metalic = 0.1f;
   float flower_ao = 1.0f;
+
+  float directional_light_intensity_ = 1.0f;
+
+  // SSAO
+  const std::string_view GeometryPassVertexShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao_geometry.vert";
+  const std::string_view GeometryPassFragmentShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao_geometry.frag";
+  Pipeline shaderGeometryPass;
+
+  const std::string_view LightingPassFragmentShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao_lighting.frag";
+  Pipeline shaderLightingPass;
+
+  const std::string_view SSAOVertexShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao.vert";
+  const std::string_view SSAOFragmentShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao.frag";
+  Pipeline shaderSSAO;
+
+  const std::string_view SSAOBlurFragmentShaderFilePath_ =
+      "data/shaders/hello_SSAO/ssao_blur.frag";
+  Pipeline shaderSSAOBlur;
+
+  unsigned int gBuffer;
+  unsigned int gPosition, gNormal, gAlbedo;
+  unsigned int SSAOattachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                                     GL_COLOR_ATTACHMENT2};
+  unsigned int SSAOrboDepth;
+  unsigned int ssaoFBO, ssaoBlurFBO;
+  unsigned int ssaoColorBuffer, ssaoColorBufferBlur;
+
+  std::vector<glm::vec3> ssaoNoise;
+  unsigned int noiseTexture;
+
+  std::vector<glm::vec3> ssaoKernel;
+
+  PrimitiveObjects SSAOcube_;
+  PrimitiveObjects SSAOquad_;
 };
 
-void HelloFinalScene::CreatePipelines() {
+void HelloFinalSceneSSAO::CreatePipelines() {
   grass2d_pipeline.CreateProgram(grass2dVertexShaderFilePath_,
                                  grass2dFragmentShaderFilePath_);
   pbr_pipeline.CreateProgram(textVertexShaderFilePath_,
@@ -349,9 +389,21 @@ void HelloFinalScene::CreatePipelines() {
 
   pbr_custom.CreateProgram(textVertexShaderFilePath_,
                            pbrcustomFragmentShaderFilePath_);
+
+  shaderGeometryPass.CreateProgram(GeometryPassVertexShaderFilePath_,
+                                   GeometryPassFragmentShaderFilePath_);
+
+  shaderLightingPass.CreateProgram(SSAOVertexShaderFilePath_,
+                                   LightingPassFragmentShaderFilePath_);
+
+  shaderSSAO.CreateProgram(SSAOVertexShaderFilePath_,
+                           SSAOFragmentShaderFilePath_);
+
+  shaderSSAOBlur.CreateProgram(SSAOVertexShaderFilePath_,
+                               SSAOBlurFragmentShaderFilePath_);
 }
 
-void HelloFinalScene::LoadModels() {
+void HelloFinalSceneSSAO::LoadModels() {
   cat_.loadModel(cat_model_path.data());
   flower_.loadModel(michelle_model_path.data());
   table_.loadModel(table_model_path.data());
@@ -360,7 +412,7 @@ void HelloFinalScene::LoadModels() {
   tea_.loadModel(tea_model_path.data());
 }
 
-void HelloFinalScene::LoadTextures() {
+void HelloFinalSceneSSAO::LoadTextures() {
   catBaseColor.HDRTextureFromFile(catBaseColorFilePath_.data(), false);
   catNormal.TextureFromFile(catNormalFilePath_.data(), false);
   catMetallic.TextureFromFile(catMetallicFilePath_.data(), false);
@@ -393,7 +445,9 @@ void HelloFinalScene::LoadTextures() {
   grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
 }
 
-void HelloFinalScene::Begin() {
+float ourLerp(float a, float b, float f) { return a + f * (b - a); }
+
+void HelloFinalSceneSSAO::Begin() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -404,6 +458,7 @@ void HelloFinalScene::Begin() {
   lightCube_.SetUpCubeOpenGL();
   plane_.SetUpPlane();
   bloomquad_.SetUpQuadbrdf();
+  SSAOquad_.SetUpQuadbrdf();
 
   CreatePipelines();
   LoadModels();
@@ -427,6 +482,7 @@ void HelloFinalScene::Begin() {
   pbr_pipeline.SetInt("metallicMap", 5);
   pbr_pipeline.SetInt("roughnessMap", 6);
   pbr_pipeline.SetInt("aoMap", 7);
+  pbr_pipeline.SetInt("SSAOMap", 8);
 
   pbr_custom.SetInt("irradianceMap", 0);
   pbr_custom.SetInt("prefilterMap", 1);
@@ -436,7 +492,8 @@ void HelloFinalScene::Begin() {
   pbr_custom.SetInt("shadowMap", 10);
   pbr_custom.SetVec3("lightPositions[0]", lightPosition);
   pbr_custom.SetVec3("directionalLightDirection", directionalLightDirection);
-  pbr_custom.SetVec3("directionalLightColor", glm::vec3(1.0f));
+  pbr_custom.SetVec3("directionalLightColor",
+                     glm::vec3(directional_light_intensity_));
 
   grass2d_pipeline.SetInt("irradianceMap", 0);
   grass2d_pipeline.SetInt("prefilterMap", 1);
@@ -447,7 +504,8 @@ void HelloFinalScene::Begin() {
   grass2d_pipeline.SetVec3("lightPositions[0]", lightPosition);
   grass2d_pipeline.SetVec3("directionalLightDirection",
                            directionalLightDirection);
-  grass2d_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
+  grass2d_pipeline.SetVec3("directionalLightColor",
+                           glm::vec3(directional_light_intensity_));
 
   backgroundShader.SetInt("environmentMap", 0);
   pbr_pipeline.SetInt("shadowMap", 10);
@@ -475,7 +533,8 @@ void HelloFinalScene::Begin() {
   pbr_pipeline.SetVec3("lightColors[0]", lightColor);
 
   pbr_pipeline.SetVec3("directionalLightDirection", directionalLightDirection);
-  pbr_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
+  pbr_pipeline.SetVec3("directionalLightColor",
+                       glm::vec3(directional_light_intensity_));
 
   //___NEW___
   shaderBloomFinal.CreateProgram(bloomFinalVertexShaderFilePath_,
@@ -558,9 +617,143 @@ void HelloFinalScene::Begin() {
   bloomRenderer.mDownsampleShader.SetInt("srcTexture", 0);
   bloomRenderer.mUpsampleShader.SetInt("srcTexture", 0);
   bloomRenderer.Init(Engine::screen_width_, Engine::screen_height_);
+
+  // configure g-buffer framebuffer SSAO
+  // ------------------------------
+
+  glGenFramebuffers(1, &gBuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+  // position color buffer
+  glGenTextures(1, &gPosition);
+  glBindTexture(GL_TEXTURE_2D, gPosition);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Engine::screen_width_,
+               Engine::screen_height_, 0, GL_RGBA, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         gPosition, 0);
+  // normal color buffer
+  glGenTextures(1, &gNormal);
+  glBindTexture(GL_TEXTURE_2D, gNormal);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Engine::screen_width_,
+               Engine::screen_height_, 0, GL_RGBA, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                         gNormal, 0);
+  // color + specular color buffer
+  glGenTextures(1, &gAlbedo);
+  glBindTexture(GL_TEXTURE_2D, gAlbedo);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Engine::screen_width_,
+               Engine::screen_height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D,
+                         gAlbedo, 0);
+  // tell OpenGL which color attachments we'll use (of this framebuffer) for
+  // rendering
+
+  glDrawBuffers(3, SSAOattachments);
+  // create and attach depth buffer (renderbuffer)
+
+  glGenRenderbuffers(1, &SSAOrboDepth);
+  glBindRenderbuffer(GL_RENDERBUFFER, SSAOrboDepth);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                        Engine::screen_width_, Engine::screen_height_);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, SSAOrboDepth);
+  // finally check if framebuffer is complete
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "Framebuffer not complete!" << std::endl;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // also create framebuffer to hold SSAO processing stage
+  // -----------------------------------------------------
+
+  glGenFramebuffers(1, &ssaoFBO);
+  glGenFramebuffers(1, &ssaoBlurFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+
+  // SSAO color buffer
+  glGenTextures(1, &ssaoColorBuffer);
+  glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, Engine::screen_width_,
+               Engine::screen_height_, 0, GL_RED, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         ssaoColorBuffer, 0);
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "SSAO Framebuffer not complete!" << std::endl;
+  // and blur stage
+  glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+  glGenTextures(1, &ssaoColorBufferBlur);
+  glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, Engine::screen_width_,
+               Engine::screen_height_, 0, GL_RED, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         ssaoColorBufferBlur, 0);
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "SSAO Blur Framebuffer not complete!" << std::endl;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // generate sample kernel
+  // ----------------------
+  std::uniform_real_distribution<GLfloat> randomFloats(
+      0.0, 1.0);  // generates random floats between 0.0 and 1.0
+  std::default_random_engine generator;
+
+  for (unsigned int i = 0; i < 64; ++i) {
+    glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0,
+                     randomFloats(generator) * 2.0 - 1.0,
+                     randomFloats(generator));
+    sample = glm::normalize(sample);
+    sample *= randomFloats(generator);
+    float scale = float(i) / 64.0f;
+
+    // scale samples s.t. they're more aligned to center of kernel
+    scale = ourLerp(0.1f, 1.0f, scale * scale);
+    sample *= scale;
+    ssaoKernel.push_back(sample);
+  }
+
+  // generate noise texture
+  // ----------------------
+
+  for (unsigned int i = 0; i < 16; i++) {
+    glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0,
+                    randomFloats(generator) * 2.0 - 1.0,
+                    0.0f);  // rotate around z-axis (in tangent space)
+    ssaoNoise.push_back(noise);
+  }
+
+  glGenTextures(1, &noiseTexture);
+  glBindTexture(GL_TEXTURE_2D, noiseTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT,
+               &ssaoNoise[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  // shader configuration
+  // --------------------
+  shaderLightingPass.SetInt("gPosition", 0);
+  shaderLightingPass.SetInt("gNormal", 1);
+  shaderLightingPass.SetInt("gAlbedo", 2);
+  shaderLightingPass.SetInt("ssao", 3);
+  shaderSSAO.SetInt("gPosition", 0);
+  shaderSSAO.SetInt("gNormal", 1);
+  shaderSSAO.SetInt("texNoise", 2);
+  shaderSSAOBlur.SetInt("ssaoInput", 0);
 }
 
-void HelloFinalScene::DrawImGui() {
+void HelloFinalSceneSSAO::DrawImGui() {
   if (main_window) {
     static float f = 0.0f;
     static int counter = 0;
@@ -604,6 +797,15 @@ void HelloFinalScene::DrawImGui() {
                          "R : Freeze Camera Rotation");
       ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
                          "T : reActive Camera Rotation");
+
+      ImGui::Text(" ");
+      ImGui::Text("Change Directional light : ");
+      ImGui::SliderFloat("Intensity", &directional_light_intensity_, 1.0f,
+                         10.0f);
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "R : Freeze Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "T : reActive Camera Rotation");
     }
 
     if (ImGui::CollapsingHeader("Post Processing")) {
@@ -612,12 +814,12 @@ void HelloFinalScene::DrawImGui() {
   }
 }
 
-void HelloFinalScene::End() {
+void HelloFinalSceneSSAO::End() {
   // Unload program/pipeline
   cubemaps_.Delete();
 }
 
-void HelloFinalScene::renderScene(Pipeline& shader) {
+void HelloFinalSceneSSAO::renderScene(Pipeline& shader) {
   glm::mat4 model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0.6f, -0.8f, -1.8f));
   model = glm::rotate(model, 3.14f, glm::vec3(0.0f, -1.0f, 0.0f));
@@ -653,7 +855,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   tea_.Draw(shader.program_);
 }
 
-void HelloFinalScene::Update(float dt) {
+void HelloFinalSceneSSAO::Update(float dt) {
   // colorBuffer.Reset();
   model = glm::mat4(1.0f);
   timer_ += dt;
@@ -665,6 +867,13 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetVec3("lightColors[0]", lightColor);
   pbr_custom.SetVec3("lightColors[0]", lightColor);
   grass2d_pipeline.SetVec3("lightColors[0]", lightColor);
+
+  pbr_pipeline.SetVec3("directionalLightColor",
+                     glm::vec3(directional_light_intensity_));
+  pbr_custom.SetVec3("directionalLightColor",
+                     glm::vec3(directional_light_intensity_));
+  grass2d_pipeline.SetVec3("directionalLightColor",
+                     glm::vec3(directional_light_intensity_));
   // render
   // ------
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -690,6 +899,80 @@ void HelloFinalScene::Update(float dt) {
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
 
+  if (programChoice < 1 || programChoice > 3) {
+    programChoice = 1;
+  }
+  bloom = (programChoice == 1) ? false : true;
+  bool horizontal = true;
+
+  //  use unthresholded bloom with progressive downsample/upsampling
+  // -------------------------------------------------------------------
+
+  bloomRenderer.RenderBloomTexture(colorBuffers[1], bloomFilterRadius);
+
+  // 3. now render floating point color buffer to 2D quad and tonemap HDR colors
+  // to default framebuffer's (clamped) color range
+  // --------------------------------------------------------------------------------------------------------------------------
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  shaderBloomFinal.Use();
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+  glActiveTexture(GL_TEXTURE1);
+  if (programChoice == 1) {
+    glBindTexture(
+        GL_TEXTURE_2D,
+        0);  // trick to bind invalid texture "0", we don't care either way!
+  }
+  if (programChoice == 2) {
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
+  } else if (programChoice == 3) {
+    glBindTexture(GL_TEXTURE_2D, bloomRenderer.BloomTexture());
+  }
+  shaderBloomFinal.SetInt("programChoice", programChoice);
+  shaderBloomFinal.SetFloat("exposure", exposure);
+  shaderBloomFinal.SetBool("BnWFilter", black_white_filter_);
+  bloomquad_.RenderQuadbrdf();
+
+  // 1. geometry pass: render scene's geometry/color data into gbuffer
+  // -----------------------------------------------------------------
+  glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  shaderGeometryPass.SetMat4("projection", projection);
+  shaderGeometryPass.SetMat4("view", view);
+  shaderGeometryPass.SetInt("invertedNormals", 0);
+  renderScene(shaderGeometryPass);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // 2. generate SSAO texture
+  // ------------------------
+  glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+  glClear(GL_COLOR_BUFFER_BIT);
+  // Send kernel + rotation
+  for (unsigned int i = 0; i < 64; ++i) {
+    shaderSSAO.SetVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+  }
+  shaderSSAO.SetMat4("projection", projection);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, gPosition);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, gNormal);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, noiseTexture);
+  SSAOquad_.RenderQuadbrdf();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // 3. blur SSAO texture to remove noise
+  // ------------------------------------
+  glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+  glClear(GL_COLOR_BUFFER_BIT);
+  shaderSSAOBlur.Use();
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+  SSAOquad_.RenderQuadbrdf();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  //// 4. lighting pass
+  ///-----------------------------------------------------------------------------------------------------
   // 1. render scene into floating point framebuffer
   // -----------------------------------------------
   glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
@@ -713,9 +996,6 @@ void HelloFinalScene::Update(float dt) {
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, cubemapsHDR_.brdfLUTTexture);
 
-  pbr_pipeline.SetInt("irradianceMap", 0);
-  pbr_pipeline.SetInt("prefilterMap", 1);
-  pbr_pipeline.SetInt("brdfLUT", 2);
   grass2d_pipeline.SetInt("irradianceMap", 0);
   grass2d_pipeline.SetInt("prefilterMap", 1);
   grass2d_pipeline.SetInt("brdfLUT", 2);
@@ -730,6 +1010,9 @@ void HelloFinalScene::Update(float dt) {
   goldMetallic.BindTexture(GL_TEXTURE5);
   goldRoughness.BindTexture(GL_TEXTURE6);
   goldMetallic.BindTexture(GL_TEXTURE7);
+
+  glActiveTexture(GL_TEXTURE8);
+  glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
 
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
@@ -859,11 +1142,10 @@ void HelloFinalScene::Update(float dt) {
     grass2d_pipeline.SetFloat("metallic", 0.01f);
     grass2d_pipeline.SetFloat("roughness", 1.0f);
     grass2d_pipeline.SetFloat("ao", 0.4f);
-  	grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, -1.0f, 0.0f));
+    grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, -1.0f, 0.0f));
     grass2d_pipeline.SetMat3("normalMatrix",
-                       glm::transpose(glm::inverse(glm::mat3(model))));
-        grass2d_pipeline.SetMat4("lightSpaceMatrix",
-                                 shadowmap_.lightSpaceMatrix);
+                             glm::transpose(glm::inverse(glm::mat3(model))));
+    grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
     grass_.Render();
   }
 
@@ -872,45 +1154,11 @@ void HelloFinalScene::Update(float dt) {
   cubemapsHDR_.DrawHDR();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  if (programChoice < 1 || programChoice > 3) {
-    programChoice = 1;
-  }
-  bloom = (programChoice == 1) ? false : true;
-  bool horizontal = true;
-
-  //  use unthresholded bloom with progressive downsample/upsampling
-  // -------------------------------------------------------------------
-
-  bloomRenderer.RenderBloomTexture(colorBuffers[1], bloomFilterRadius);
-
-  // 3. now render floating point color buffer to 2D quad and tonemap HDR colors
-  // to default framebuffer's (clamped) color range
-  // --------------------------------------------------------------------------------------------------------------------------
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  shaderBloomFinal.Use();
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
-  glActiveTexture(GL_TEXTURE1);
-  if (programChoice == 1) {
-    glBindTexture(
-        GL_TEXTURE_2D,
-        0);  // trick to bind invalid texture "0", we don't care either way!
-  }
-  if (programChoice == 2) {
-    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
-  } else if (programChoice == 3) {
-    glBindTexture(GL_TEXTURE_2D, bloomRenderer.BloomTexture());
-  }
-  shaderBloomFinal.SetInt("programChoice", programChoice);
-  shaderBloomFinal.SetFloat("exposure", exposure);
-  shaderBloomFinal.SetBool("BnWFilter", black_white_filter_);
-  bloomquad_.RenderQuadbrdf();
 }
 
 }  // namespace gpr5300
 int main(int argc, char** argv) {
-  gpr5300::HelloFinalScene scene;
+  gpr5300::HelloFinalSceneSSAO scene;
   gpr5300::Engine engine(&scene);
   engine.Run();
 
