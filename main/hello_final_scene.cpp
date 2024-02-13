@@ -144,7 +144,7 @@ class HelloFinalScene final : public Scene {
       "data/model/cat/png_texture/cat_ao_2k.png";
 
   const std::string_view michelle_model_path = "data/model/Flower/Flower.obj";
-  Model michelle_;
+  Model flower_;
 
   const std::string_view tea_model_path = "data/model/Tea/tea.obj";
   Model tea_;
@@ -179,29 +179,6 @@ class HelloFinalScene final : public Scene {
       "data/model/lantern/chinese_lantern_part2.obj";
   Model lantern_part2_;
 
-  /*
-const std::string_view trunk_model_path = "data/model/Tree/trunk.obj";
-Model trunk_;
-const std::string_view leaves_model_path = "data/model/Tree/leaves.obj";
-Model leaves_;
-
-Texture leavesTexture;
-const std::string_view leavesTextureFilePath_ =
-    "data/model/Tree/willow_leaves.png";
-
-Texture TrunkAlbedo;
-const std::string_view trunkAFilePath_ = "data/model/Tree/trunk_Albedo.jpg";
-
-Texture TrunkNormal;
-const std::string_view trunkNFilePath_ = "data/model/Tree/trunk_Normal.jpg";
-
-Texture TrunkRoughness;
-const std::string_view trunkRFilePath_ =
-    "data/model/Tree/trunk_Roughness.jpg";
-
-Texture TrunkAO;
-const std::string_view trunkAOFilePath_ = "data/model/Tree/trunk_AO.jpg";
-*/
   Pipeline blending;
   const std::string_view blendingVertexShaderFilePath_ =
       "data/shaders/hello_model/model.vert";
@@ -253,7 +230,7 @@ const std::string_view trunkAOFilePath_ = "data/model/Tree/trunk_AO.jpg";
   const std::string_view grass2dVertexShaderFilePath_ =
       "data/shaders/hello_IBL_model/grass_shadow.vert";
   const std::string_view grass2dFragmentShaderFilePath_ =
-      "data/shaders/hello_IBL_model/grass_shadow.frag";
+      "data/shaders/hello_IBL_model/pbr_grass.frag";
   Pipeline grass2d_pipeline;
 
   Texture grass_texture_;
@@ -376,7 +353,7 @@ void HelloFinalScene::CreatePipelines() {
 
 void HelloFinalScene::LoadModels() {
   cat_.loadModel(cat_model_path.data());
-  michelle_.loadModel(michelle_model_path.data());
+  flower_.loadModel(michelle_model_path.data());
   table_.loadModel(table_model_path.data());
   lantern_.loadModel(lantern_model_path.data());
   lantern_part2_.loadModel(lantern_part2_model_path.data());
@@ -384,31 +361,31 @@ void HelloFinalScene::LoadModels() {
 }
 
 void HelloFinalScene::LoadTextures() {
-  catBaseColor.TextureFromFile(catBaseColorFilePath_.data(), false);
+  catBaseColor.HDRTextureFromFile(catBaseColorFilePath_.data(), false);
   catNormal.TextureFromFile(catNormalFilePath_.data(), false);
   catMetallic.TextureFromFile(catMetallicFilePath_.data(), false);
   catRoughness.TextureFromFile(catRoughnessFilePath_.data(), false);
   catAo.TextureFromFile(catAoFilePath_.data(), false);
 
-  goldAlbedo.TextureFromFile(goldAFilePath.data(), false);
+  goldAlbedo.HDRTextureFromFile(goldAFilePath.data(), false);
   goldMetallic.TextureFromFile(goldMFilePath_.data(), false);
   goldNormal.TextureFromFile(goldNFilePath_.data(), false);
   goldRoughness.TextureFromFile(goldRFilePath_.data(), false);
   goldAO.TextureFromFile(goldAOFilePath_.data(), false);
 
-  meaAlbedo.TextureFromFileRepeat(meaAFilePath_.data());
+  meaAlbedo.HDRTextureFromFileRepeat(meaAFilePath_.data());
   meaMetallic.TextureFromFileRepeat(meaMFilePath_.data());
   meaNormal.TextureFromFileRepeat(meaNFilePath_.data());
   meaRoughness.TextureFromFileRepeat(meaRFilePath_.data());
   meaAO.TextureFromFileRepeat(meaAOFilePath_.data());
 
-  TableAlbedo.TextureFromFile(tableAFilePath_.data(), false);
+  TableAlbedo.HDRTextureFromFile(tableAFilePath_.data(), false);
   TableNormal.TextureFromFile(tableNFilePath_.data(), false);
   TableMetallic.TextureFromFile(tableMFilePath_.data(), false);
   TableRoughness.TextureFromFile(tableRFilePath_.data(), false);
   TableAO.TextureFromFile(tableAOFilePath_.data(), false);
 
-  lanternAlbedo.TextureFromFile(lanternAFilePath_.data(), false);
+  lanternAlbedo.HDRTextureFromFile(lanternAFilePath_.data(), false);
   lanternNormal.TextureFromFile(lanternNFilePath_.data(), false);
   lanternMetallic.TextureFromFile(lanternMFilePath_.data(), false);
   lanternRoughness.TextureFromFile(lanternRFilePath_.data(), false);
@@ -436,21 +413,6 @@ void HelloFinalScene::Begin() {
   hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
   shadowmap_.SetUp();
 
-  // leaves_.loadModel(leaves_model_path.data());
-  // trunk_.loadModel(trunk_model_path.data());
-
-  // leavesTexture.is_uv_inverted = false;
-  // leavesTexture.TextureFromFile(leavesTextureFilePath_.data());
-
-  // TrunkAlbedo.is_uv_inverted = false;
-  // TrunkAlbedo.TextureFromFile(trunkAFilePath_.data());
-  // TrunkAO.is_uv_inverted = false;
-  // TrunkAO.TextureFromFile(trunkAOFilePath_.data());
-  // TrunkNormal.is_uv_inverted = false;
-  // TrunkNormal.TextureFromFile(trunkNFilePath_.data());
-  // TrunkRoughness.is_uv_inverted = false;
-  // TrunkRoughness.TextureFromFile(trunkRFilePath_.data());
-
   goldAlbedo.BindTexture(GL_TEXTURE3);
   goldNormal.BindTexture(GL_TEXTURE4);
   goldMetallic.BindTexture(GL_TEXTURE5);
@@ -476,6 +438,17 @@ void HelloFinalScene::Begin() {
   pbr_custom.SetVec3("directionalLightDirection", directionalLightDirection);
   pbr_custom.SetVec3("directionalLightColor", glm::vec3(1.0f));
 
+  grass2d_pipeline.SetInt("irradianceMap", 0);
+  grass2d_pipeline.SetInt("prefilterMap", 1);
+  grass2d_pipeline.SetInt("brdfLUT", 2);
+  grass2d_pipeline.SetInt("albedoMap", 3);
+  grass2d_pipeline.SetInt("normalMap", 4);
+  grass2d_pipeline.SetInt("shadowMap", 10);
+  grass2d_pipeline.SetVec3("lightPositions[0]", lightPosition);
+  grass2d_pipeline.SetVec3("directionalLightDirection",
+                           directionalLightDirection);
+  grass2d_pipeline.SetVec3("directionalLightColor", glm::vec3(1.0f));
+
   backgroundShader.SetInt("environmentMap", 0);
   pbr_pipeline.SetInt("shadowMap", 10);
 
@@ -494,6 +467,7 @@ void HelloFinalScene::Begin() {
   pbr_pipeline.SetMat4("projection", projection);
   pbr_custom.SetMat4("projection", projection);
   backgroundShader.SetMat4("projection", projection);
+  shaderLight.SetMat4("projection", projection);
 
   glViewport(0, 0, Engine::screen_width_, Engine::screen_height_);
 
@@ -587,13 +561,11 @@ void HelloFinalScene::Begin() {
 }
 
 void HelloFinalScene::DrawImGui() {
-  if (main_window) ImGui::ShowDemoWindow(&main_window);
-  {
+  if (main_window) {
     static float f = 0.0f;
     static int counter = 0;
 
-    ImGui::Begin("Miaou Settings :");  // Create a window called "Hello,
-                                       // world!" and append into it.
+    ImGui::Begin("Miaou Settings :");
 
     ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
                        "Welcome to xiequ yuan !");
@@ -602,8 +574,10 @@ void HelloFinalScene::DrawImGui() {
       ImGui::Text("A : move left, D : move right");
       ImGui::Text("SPACE : move Up, CTRL : move Down");
       ImGui::Text("Camera rotate with the mouse position");
-      ImGui::Text("R : Freeze Camera Rotation");
-      ImGui::Text("T : reActive Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "R : Freeze Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "T : reActive Camera Rotation");
     }
 
     if (ImGui::CollapsingHeader("IBL Settings : ")) {
@@ -635,18 +609,12 @@ void HelloFinalScene::DrawImGui() {
     if (ImGui::CollapsingHeader("Post Processing")) {
       ImGui::Checkbox("Black and White Filter", &black_white_filter_);
     }
-
-    ImGui::Checkbox(
-        "Demo Window",
-        &main_window);  // Edit bools storing our window open/close state
   }
 }
 
 void HelloFinalScene::End() {
   // Unload program/pipeline
   cubemaps_.Delete();
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui::DestroyContext();
 }
 
 void HelloFinalScene::renderScene(Pipeline& shader) {
@@ -655,7 +623,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::rotate(model, 3.14f, glm::vec3(0.0f, -1.0f, 0.0f));
   model = glm::scale(model, glm::vec3(3.4f));
   shader.SetMat4("model", model);
-  michelle_.Draw(shader.program_);
+  flower_.Draw(shader.program_);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(1.4f, -0.92f, -2.4f));
@@ -696,6 +664,7 @@ void HelloFinalScene::Update(float dt) {
   lightColor = glm::vec3(lightRed, lightGreen, lightBlue);
   pbr_pipeline.SetVec3("lightColors[0]", lightColor);
   pbr_custom.SetVec3("lightColors[0]", lightColor);
+  grass2d_pipeline.SetVec3("lightColors[0]", lightColor);
   // render
   // ------
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -707,9 +676,9 @@ void HelloFinalScene::Update(float dt) {
   renderScene(simpleDepthShader);
 
   //// INSTANTIATE ELEMENTS
+  simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
+                                       shadowmap_.lightSpaceMatrix);
   if (instantiate_grass_) {
-    simpleDepthInstantiateShader.SetMat4("lightSpaceMatrix",
-                                         shadowmap_.lightSpaceMatrix);
     grass_.Render();
   }
 
@@ -720,8 +689,6 @@ void HelloFinalScene::Update(float dt) {
 
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_2D, shadowmap_.depthMap);
-
-  // pbr_pipeline.SetInt("shadowMap", 10);
 
   // 1. render scene into floating point framebuffer
   // -----------------------------------------------
@@ -736,6 +703,7 @@ void HelloFinalScene::Update(float dt) {
   // ------------------------------------------------------------------------------------------
   pbr_pipeline.SetMat4("view", view);
   pbr_pipeline.SetVec3("camPos", camera_.position_);
+  grass2d_pipeline.SetVec3("camPos", camera_.position_);
 
   // bind pre-computed IBL data
   glActiveTexture(GL_TEXTURE0);
@@ -748,15 +716,16 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetInt("irradianceMap", 0);
   pbr_pipeline.SetInt("prefilterMap", 1);
   pbr_pipeline.SetInt("brdfLUT", 2);
+  grass2d_pipeline.SetInt("irradianceMap", 0);
+  grass2d_pipeline.SetInt("prefilterMap", 1);
+  grass2d_pipeline.SetInt("brdfLUT", 2);
 
-  // render rows*column number of spheres with varying metallic/roughness values
-  // scaled by rows and columns respectively
   glm::mat4 model = glm::mat4(1.0f);
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
 
-  goldAlbedo.BindTexture(GL_TEXTURE3);
+  goldAlbedo.BindTextureHDR(GL_TEXTURE3);
   goldNormal.BindTexture(GL_TEXTURE4);
   goldMetallic.BindTexture(GL_TEXTURE5);
   goldRoughness.BindTexture(GL_TEXTURE6);
@@ -782,7 +751,7 @@ void HelloFinalScene::Update(float dt) {
   pbr_custom.SetVec3("viewPos", camera_.position_);
   pbr_custom.SetVec3("camPos", camera_.position_);
   pbr_custom.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
-  michelle_.Draw(pbr_custom.program_);
+  flower_.Draw(pbr_custom.program_);
 
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(-0.6f, -0.9f, -1.8f));
@@ -801,7 +770,7 @@ void HelloFinalScene::Update(float dt) {
                        glm::transpose(glm::inverse(glm::mat3(model))));
   pbr_pipeline.SetMat4("model", model);
 
-  catBaseColor.BindTexture(GL_TEXTURE3);
+  catBaseColor.BindTextureHDR(GL_TEXTURE3);
   catNormal.BindTexture(GL_TEXTURE4);
   catMetallic.BindTexture(GL_TEXTURE5);
   catRoughness.BindTexture(GL_TEXTURE6);
@@ -816,7 +785,7 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
-  TableAlbedo.BindTexture(GL_TEXTURE3);
+  TableAlbedo.BindTextureHDR(GL_TEXTURE3);
   TableNormal.BindTexture(GL_TEXTURE4);
   TableMetallic.BindTexture(GL_TEXTURE5);
   TableRoughness.BindTexture(GL_TEXTURE6);
@@ -830,7 +799,7 @@ void HelloFinalScene::Update(float dt) {
   shaderLight.SetMat4("model", model);
 
   shaderLight.SetVec3("lightColor", lightColor);
-  shaderLight.SetMat4("projection", projection);
+
   shaderLight.SetMat4("view", view);
   // lightCube_.RenderCubeOpenGL();
   sphere_.RenderSphere();
@@ -844,12 +813,12 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetMat4("model", model);
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
-  lanternAlbedo.BindTexture(GL_TEXTURE3);
+  lanternAlbedo.BindTextureHDR(GL_TEXTURE3);
   lanternNormal.BindTexture(GL_TEXTURE4);
   lanternMetallic.BindTexture(GL_TEXTURE5);
   lanternRoughness.BindTexture(GL_TEXTURE6);
   lantern_.Draw(pbr_pipeline.program_);
-  goldAlbedo.BindTexture(GL_TEXTURE3);
+  goldAlbedo.BindTextureHDR(GL_TEXTURE3);
   goldNormal.BindTexture(GL_TEXTURE4);
   goldMetallic.BindTexture(GL_TEXTURE5);
   goldRoughness.BindTexture(GL_TEXTURE6);
@@ -863,33 +832,16 @@ void HelloFinalScene::Update(float dt) {
   pbr_pipeline.SetMat3("normalMatrix",
                        glm::transpose(glm::inverse(glm::mat3(model))));
 
-  meaAlbedo.BindTexture(GL_TEXTURE3);
+  meaAlbedo.BindTextureHDR(GL_TEXTURE3);
   meaNormal.BindTexture(GL_TEXTURE4);
   meaMetallic.BindTexture(GL_TEXTURE5);
   meaRoughness.BindTexture(GL_TEXTURE6);
   meaAO.BindTexture(GL_TEXTURE7);
 
+  // DON'T WANT POINT LIGHT IN PLANE
+  pbr_pipeline.SetVec3("lightColors[0]", glm::vec3(0.0f));
   plane_.RenderPlane();
 
-  /* model = glm::mat4(1.0f);
-   model = glm::translate(model, glm::vec3(-2.2f, -1.8f, -8.2f));
-   model = glm::rotate(model, 2.1f, glm::vec3(0.0f, 1.0f, 0.0f));
-   model = glm::scale(model, glm::vec3(2.8f));
-   pbr_pipeline.SetMat4("model", model);
-   pbr_pipeline.SetMat3("normalMatrix",
-                        glm::transpose(glm::inverse(glm::mat3(model))));*/
-  // TrunkAlbedo.BindTexture(GL_TEXTURE3);
-  // TrunkNormal.BindTexture(GL_TEXTURE4);
-  // TrunkRoughness.BindTexture(GL_TEXTURE6);
-  // TrunkAO.BindTexture(GL_TEXTURE7);
-  // trunk_.Draw(pbr_pipeline.program_);
-
-  // blending.SetMat4("model", model);
-  // blending.SetMat4("view", view);
-  // blending.SetMat4("projection", projection);
-  // leavesTexture.BindTexture(GL_TEXTURE8);
-  // blending.SetInt("texture_diffuse1", 8);
-  // leaves_.Draw(blending.program_);
   if (instantiate_grass_) {
     float dimtime = 2 * timer_;
     float dimwindStrength = 0.18f;  // Adjust as needed
@@ -897,15 +849,21 @@ void HelloFinalScene::Update(float dt) {
     grass2d_pipeline.SetFloat("time", dimtime);
     grass2d_pipeline.SetFloat("windStrength", dimwindStrength);
     grass_texture_.BindTexture(GL_TEXTURE8);
-    grass2d_pipeline.SetInt("texture1", 8);
-    model = glm::scale(model, glm::vec3(8, 8, 8));
+    grass2d_pipeline.SetInt("albedoMap", 8);
     grass2d_pipeline.SetMat4("model", model);
     grass2d_pipeline.SetMat4("view", view);
     grass2d_pipeline.SetMat4("projection", projection);
     grass2d_pipeline.SetVec3("viewPos", camera_.position_);
-    grass2d_pipeline.SetVec3("lightPos", directionalLightPosition);
-    grass2d_pipeline.SetMat4("lightSpaceMatrix", shadowmap_.lightSpaceMatrix);
-    grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, 1.0f, 0.0f));
+    goldNormal.BindTexture(GL_TEXTURE4);
+    grass2d_pipeline.SetInt("normalMap", 4);
+    grass2d_pipeline.SetFloat("metallic", 0.01f);
+    grass2d_pipeline.SetFloat("roughness", 1.0f);
+    grass2d_pipeline.SetFloat("ao", 0.4f);
+  	grass2d_pipeline.SetVec3("aNormal", glm::vec3(0.0f, -1.0f, 0.0f));
+    grass2d_pipeline.SetMat3("normalMatrix",
+                       glm::transpose(glm::inverse(glm::mat3(model))));
+        grass2d_pipeline.SetMat4("lightSpaceMatrix",
+                                 shadowmap_.lightSpaceMatrix);
     grass_.Render();
   }
 

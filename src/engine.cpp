@@ -49,6 +49,9 @@ namespace gpr5300
                         glm::uvec2 newWindowSize;
                         newWindowSize.x = event.window.data1;
                         newWindowSize.y = event.window.data2;
+                        screen_width_ = static_cast<float>(event.window.data1);
+                        screen_height_ = static_cast<float>(event.window.data2);
+
                         //TODO do something with the new size
                         break;
                     }
@@ -99,7 +102,7 @@ namespace gpr5300
 
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-        constexpr auto windowSize = glm::ivec2(screen_width_, screen_height_);
+    	auto windowSize = glm::ivec2(screen_width_, screen_height_);
         window_ = SDL_CreateWindow(
             "Miaou Graphics",
             SDL_WINDOWPOS_UNDEFINED,

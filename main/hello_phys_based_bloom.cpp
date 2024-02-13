@@ -251,8 +251,7 @@ void HelloBloomPB::Update(float dt) {
 
   shader.SetMat4("projection", projection);
   shader.SetMat4("view", view);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, wood.hdrTexture);
+  wood.BindTextureHDR(GL_TEXTURE0);
   // set lighting uniforms
   for (unsigned int i = 0; i < lightPositions.size(); i++) {
     shader.SetVec3("lights[" + std::to_string(i) + "].Position",
@@ -267,7 +266,7 @@ void HelloBloomPB::Update(float dt) {
   shader.SetMat4("model", model);
   cube_.RenderCubeOpenGL();
   // then create multiple cubes as the scenery
-  glBindTexture(GL_TEXTURE_2D, wood.hdrTexture);
+  wood.BindTextureHDR(GL_TEXTURE0);
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
   model = glm::scale(model, glm::vec3(0.5f));

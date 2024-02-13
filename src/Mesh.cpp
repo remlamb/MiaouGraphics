@@ -125,12 +125,10 @@ void Texture::TextureFromFile(std::string_view file_path) {
   stbi_image_free(data);
 }
 
-void Texture::TextureFromFile(std::string_view file_path,  bool is_inverted)
-{
+void Texture::TextureFromFile(std::string_view file_path, bool is_inverted) {
   is_uv_inverted = is_inverted;
   TextureFromFile(file_path);
 }
-
 
 void Texture::TextureFromFileRepeat(std::string_view file_path) {
   stbi_set_flip_vertically_on_load(is_uv_inverted);
@@ -188,17 +186,54 @@ void Texture::HDRTextureFromFile(std::string_view file_path) {
   std::cout << "width : " << width << " height : " << height
             << " Channels : " << nbrChannels << '\n';
   // Load Texture
+  GLint internalFormat = nbrChannels == 3 ? GL_RGB16F : GL_RGBA16F;
+  GLint format = nbrChannels == 3 ? GL_RGB : GL_RGBA;
   glGenTextures(1, &hdrTexture);
   glBindTexture(GL_TEXTURE_2D, hdrTexture);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT,
-               data);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format,
+               GL_FLOAT, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+  stbi_image_free(data);
+}
+
+void Texture::HDRTextureFromFile(std::string_view file_path, bool is_inverted) {
+  is_uv_inverted = is_inverted;
+  HDRTextureFromFile(file_path);
+}
+
+void Texture::HDRTextureFromFileRepeat(std::string_view file_path) {
+  stbi_set_flip_vertically_on_load(is_uv_inverted);
+
+  int width, height, nbrChannels;
+  float* data = stbi_loadf(file_path.data(), &width, &height, &nbrChannels, 0);
+  if (data == nullptr) {
+    std::cerr << "Failed to load image\n" << file_path.data() << "\n";
+    // return texture;
+  }
+  std::cout << "width : " << width << " height : " << height
+            << " Channels : " << nbrChannels << '\n';
+  // Load Texture
+  GLint internalFormat = nbrChannels == 3 ? GL_RGB16F : GL_RGBA16F;
+  GLint format = nbrChannels == 3 ? GL_RGB : GL_RGBA;
+  glGenTextures(1, &hdrTexture);
+  glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format,
+               GL_FLOAT, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   stbi_image_free(data);
 }
 

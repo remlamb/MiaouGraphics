@@ -22,6 +22,8 @@ struct Texture {
   void TextureFromFile(std::string_view file_path, bool is_inverted);
   void TextureFromFileRepeat(std::string_view file_path);
   void HDRTextureFromFile(std::string_view file_path);
+  void HDRTextureFromFile(std::string_view file_path, bool is_inverted);
+  void HDRTextureFromFileRepeat(std::string_view file_path);
   void BindTexture(GLenum textureUnit);
   void BindTextureHDR(GLenum textureUnit);
   void BindTextureInt(int textureUnit);

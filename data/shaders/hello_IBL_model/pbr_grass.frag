@@ -8,9 +8,9 @@ in vec4 FragPosLightSpace;
 // material parameters
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
+uniform float metallic;
+uniform float roughness;
+uniform float ao;
 
 // IBL
 uniform samplerCube irradianceMap;
@@ -123,7 +123,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     vec3 lightDir = -directionalLightDirection; //normalize(lightPos - fragPos);
     //float bias = max(0.05 * (1.0 - dot(worldNormal, lightDir)), 0.005);
 
-    float bias = 0.006;
+    float bias = 0.003;
     // check whether current frag pos is in shadow
     //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
 
@@ -148,13 +148,14 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 void main()
 {
     // material properties
-    vec3 albedo = texture(albedoMap, TexCoords).rgb;
-    float metallic = texture(metallicMap, TexCoords).r;
-    float roughness = texture(roughnessMap, TexCoords).r;
-    float ao = texture(aoMap, TexCoords).r;
+    vec4 texColor = texture(albedoMap, TexCoords);
+    if(texColor.a < 0.1){
+            discard;
+    }
+    vec3 albedo = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
 
     // input lighting data
-    vec3 N = getNormalFromMap();
+    vec3 N = Normal;
     vec3 V = normalize(camPos - WorldPos);
     vec3 R = reflect(-V, N);
 
@@ -261,9 +262,8 @@ void main()
 
     // HDR tonemapping
     color = color / (color + vec3(1.0));
-    //color = vec3(1.0) - exp(-albedo * exposure);
     // gamma correct
     color = pow(color, vec3(1.0/1.8));
 
-    FragColor = vec4(color , 1.0);
+    FragColor = vec4(color ,  texColor.a);
 }

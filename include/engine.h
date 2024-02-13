@@ -5,8 +5,8 @@ namespace gpr5300 {
 
 class Engine {
  public:
-  constexpr inline static int screen_width_ = 1280;
-  constexpr inline static int screen_height_ = 720;
+  inline static int screen_width_ = 1280;
+  inline static int screen_height_ = 720;
   Engine(Scene* scene);
   void Run();
 

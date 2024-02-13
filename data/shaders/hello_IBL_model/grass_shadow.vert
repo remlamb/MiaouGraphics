@@ -5,7 +5,7 @@ layout (location = 3) in mat4 aInstanceMatrix;
 
 out vec2 TexCoords;
 out vec4 FragPosLightSpace;
-out vec3 FragPos;
+out vec3 WorldPos;
 out vec3 Normal;
 
 uniform mat4 model;
@@ -26,8 +26,8 @@ vec2 offset = vec2(0.0, sin(aPos.x * 10.0 + time) * windStrength);
 // Apply the offset to texture coordinates
 TexCoords = aTexCoords + offset;
 Normal = transpose(inverse(mat3(model))) * aNormal;
-FragPos = vec3(model * vec4(aPos, 1.0));
-FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
+WorldPos = vec3(model * vec4(aPos, 1.0));
+FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
 
 gl_Position =projection * view * aInstanceMatrix * vec4(aPos.x, aPos.y, aPos.z, 1.0);
 }

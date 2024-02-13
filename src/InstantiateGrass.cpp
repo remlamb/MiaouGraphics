@@ -37,7 +37,6 @@ void InstantiateGrass::SetUp() {
       // TODO better random Scaling
       float scale = Range(0.6f, 1.0f);
       model = glm::scale(model, glm::vec3(scale));
-
       // Rotation
       modelMatrices[i] = model;
       i++;
