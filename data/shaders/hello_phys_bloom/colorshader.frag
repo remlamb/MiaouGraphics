@@ -5,6 +5,7 @@ in vec2 TexCoords;
 
 uniform sampler2D scene;
 uniform sampler2D bloomBlur;
+
 uniform float exposure;
 uniform float bloomStrength = 0.04f;
 uniform int programChoice;
@@ -46,10 +47,10 @@ void main()
     }
     // tone mapping
     //result = vec3(1.0) - exp(-result * exposure);
-    //result = result / (result + vec3(1.0));
+    result = result / (result + vec3(1.0));
     //gamma correct
     const float gamma = 1.8;
-    //result = pow(result, vec3(1.0 / gamma));
+    result = pow(result, vec3(1.0 / gamma));
     FragColor = vec4(result, 1.0);
 
     if(BnWFilter){

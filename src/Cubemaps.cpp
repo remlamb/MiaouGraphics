@@ -47,7 +47,7 @@ void Cubemaps::SetUp(std::vector<std::string> faces) {
 
 void Cubemaps::SetUpHDR(gpr5300::Pipeline equirectangular_to_cubemap_pipeline,
                         Texture hdr_cubemap) {
-  cube_.SetUpCube();
+  cube_.SetUpCubeMap();
   capture_frame_buffer_.SetUp(4096, 4096);
 
   // pbr: setup cubemap to render to and attach to framebuffer

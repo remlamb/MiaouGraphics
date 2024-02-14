@@ -9,7 +9,7 @@ void Model::Draw(GLuint &program) {
 void Model::loadModel(std::string path) {
   Assimp::Importer import;
   const aiScene *scene =
-      import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+      import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
@@ -52,6 +52,10 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
     vertex.normal.x = mesh->mNormals[i].x;
     vertex.normal.y = mesh->mNormals[i].y;
     vertex.normal.z = mesh->mNormals[i].z;
+
+    vertex.tangent.x = mesh->mTangents[i].x;
+    vertex.tangent.y = mesh->mTangents[i].y;
+    vertex.tangent.z = mesh->mTangents[i].z;
 
     // If the mesh contains texture coordinates, stores it.
     if (mesh->mTextureCoords[0]) {

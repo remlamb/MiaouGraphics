@@ -1,16 +1,14 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
+
 in vec2 TexCoords;
-in vec3 WorldPos;
-in vec3 Normal;
-in vec4 FragPosLightSpace;
 
 // material parameters
-uniform sampler2D albedoMap;
-uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAlbedo;
+
 uniform sampler2D SSAOMap;
 
 // IBL
@@ -32,29 +30,14 @@ uniform vec3 viewPos;
 
 uniform vec3 camPos;
 
+uniform mat4 inverseViewMatrix;
+
+uniform mat4 lightSpaceMatrix;
+
 const float PI = 3.14159265359;
 // ----------------------------------------------------------------------------
-// Easy trick to get tangent-normals to world-space to keep PBR code simplified.
-// Don't worry if you don't get what's going on; you generally want to do normal
-// mapping the usual way for performance anyways; I do plan make a note of this
-// technique somewhere later in the normal mapping tutorial.
 
-vec3 getNormalFromMap()
-{
-    vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx(WorldPos);
-    vec3 Q2  = dFdy(WorldPos);
-    vec2 st1 = dFdx(TexCoords);
-    vec2 st2 = dFdy(TexCoords);
-
-    vec3 N   = normalize(Normal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
-    mat3 TBN = mat3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
 // ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -149,16 +132,20 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 void main()
 {
     // material properties
-    vec3 albedo = texture(albedoMap, TexCoords).rgb;
-    float metallic = texture(metallicMap, TexCoords).r;
-    float roughness = texture(roughnessMap, TexCoords).r;
-    float ao = texture(aoMap, TexCoords).r;
+    vec3 albedo = texture(gAlbedo, TexCoords).rgb;
+    float metallic = texture(gPosition, TexCoords).a;
+    float roughness = texture(gNormal, TexCoords).a;
+    float ao = texture(gAlbedo, TexCoords).a;
     float ssao = texture(SSAOMap, TexCoords).r;
     //ssao = 1.0f;
-    float combined_ao = ssao;
+    float combined_ao = ssao * ao;
+
+    vec4 fragWorldPos = inverseViewMatrix * vec4(texture(gPosition, TexCoords).rgb, 1.0);
+
+    vec3 WorldPos = vec3(fragWorldPos);
 
     // input lighting data
-    vec3 N = getNormalFromMap();
+    vec3 N = mat3(inverseViewMatrix) * texture(gNormal, TexCoords).rgb; ;
     vec3 V = normalize(camPos - WorldPos);
     vec3 R = reflect(-V, N);
 
@@ -201,6 +188,7 @@ void main()
         float NdotL = max(dot(N, L), 0.0);
 
         // add to outgoing radiance Lo
+        vec4 FragPosLightSpace = lightSpaceMatrix * fragWorldPos;
         float shadow = ShadowCalculation(FragPosLightSpace);
         Lo += (1.0 - shadow) * (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
@@ -263,11 +251,10 @@ void main()
 
     vec3 color = ambient + Lo;
 
-    // HDR tonemapping
-    color = color / (color + vec3(1.0));
-    //color = vec3(1.0) - exp(-albedo * exposure);
-    // gamma correct
-    color = pow(color, vec3(1.0/1.8));
-
-    FragColor = vec4(color , 1.0);
+    FragColor = vec4(color, 1.0);
+    float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0)
+        BrightColor = vec4(FragColor.rgb, 1.0);
+	else
+		BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
 }

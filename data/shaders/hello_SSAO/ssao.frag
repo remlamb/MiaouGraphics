@@ -16,8 +16,11 @@ uniform vec3 samples[64];
 
 //Base parameters
 int kernelSize = 64;
-float radius = 0.5;
-float bias = 0.025;
+//float radius = 0.5;
+//float bias = 0.025;
+
+uniform float radius;
+uniform float bias;
 
 // tile noise texture over screen based on screen dimensions divided by noise size
 const vec2 noiseScale = vec2(800.0/4.0, 600.0/4.0);

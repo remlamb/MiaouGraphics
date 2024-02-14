@@ -23,6 +23,8 @@ class Pipeline {
 
   void SetVec2(const std::string_view uniform, glm::vec2 vec2);
 
+    void SetVec4(const std::string_view uniform, glm::vec4 vec4);
+
   void SetMat4(const std::string_view uniform, glm::mat4 mat4);
 
   void SetMat3(const std::string_view uniform, glm::mat3 mat3);

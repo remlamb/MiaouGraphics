@@ -92,6 +92,25 @@ void PrimitiveObjects::SetUpCube() {
                cubeIndices_.data(), GL_STATIC_DRAW);
 }
 
+
+void PrimitiveObjects::SetUpCubeMap() {
+  glCreateVertexArrays(1, &cube_vao_);
+  glBindVertexArray(cube_vao_);
+
+  glGenBuffers(1, &cube_vbo_[0]);
+  glBindBuffer(GL_ARRAY_BUFFER, cube_vbo_[0]);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cubeMapVertices_),
+               cubeMapVertices_.data(),
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+
+  glGenBuffers(1, &cube_ebo_);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cube_ebo_);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices_),
+               cubeIndices_.data(), GL_STATIC_DRAW);
+}
+
 void PrimitiveObjects::RenderCube() {
   glBindVertexArray(cube_vao_);
   glDrawElements(GL_TRIANGLES, sizeof(cubeIndices_), GL_UNSIGNED_INT, 0);
