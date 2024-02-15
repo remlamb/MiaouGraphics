@@ -802,7 +802,7 @@ void HelloFinalScene::DrawImGui() {
 
       ImGui::Text(" ");
       ImGui::Text("3 Presets : ");
-      if (ImGui::Button("Strong Blue")) {
+      if (ImGui::Button("Solid Blue")) {
         lightRed = 0.01f;
         lightGreen = 2.8f;
         lightBlue = 10.0f;
@@ -859,8 +859,8 @@ void HelloFinalScene::DrawImGui() {
                          "T : reActive Camera Rotation");
     }
     if (ImGui::CollapsingHeader("Info : ")) {
-      ImGui::Text("If you want to learn more about this scene");
-      ImGui::Text("you can find a blogpost on the Github's page !");
+      ImGui::TextWrapped("If you want to learn more about this scene");
+      ImGui::TextWrapped("you can find a blogpost on the Github's page !");
       ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
                          "https://github.com/remlamb/MiaouGraphics");
     }
