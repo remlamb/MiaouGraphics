@@ -18,15 +18,19 @@ class PrimitiveObjects {
 
   GLuint plane_vao_ = 0;
   GLuint plane_vbo_ = 0;
-  const std::array<float, 48> planeVertices = {
-      // positions            // normals         // texcoords
-      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      -25.0f, -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
-      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+  const std::array<float, 66> planeVertices = {
+      // positions            // normals         // texcoords //Tangent
+      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,  1.0f, 0.0f, 0.0f,
 
-      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
-      25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
+      -25.0f, -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
+
+      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f, 1.0f, 0.0f, 0.0f,
+
+      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,  1.0f, 0.0f, 0.0f,
+
+      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f, 1.0f, 0.0f, 0.0f,
+
+      25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f, 1.0f, 0.0f, 0.0f};
 
   GLuint cube_vao_ = 0;
   GLuint cube_vbo_[2] = {};
@@ -110,7 +114,6 @@ class PrimitiveObjects {
       1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
   };
 
-  
   const std::array<float, 72> cubeMapVertices_ = {
       1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,
       -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,

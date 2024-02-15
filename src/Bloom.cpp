@@ -1,5 +1,7 @@
 #include "Bloom.h"
 
+#include "engine.h"
+
 bloomFBO::bloomFBO() : mInit(false) {}
 bloomFBO::~bloomFBO() {}
 
@@ -201,7 +203,8 @@ void BloomRenderer::RenderBloomTexture(unsigned int srcTexture,
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   // Restore viewport
-  glViewport(0, 0, mSrcViewportSize.x, mSrcViewportSize.y);
+  glViewport(0, 0, gpr5300::Engine::screen_width_,
+             gpr5300::Engine::screen_height_);
 }
 
 GLuint BloomRenderer::BloomTexture() { return mFBO.MipChain()[0].texture; }

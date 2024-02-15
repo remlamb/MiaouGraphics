@@ -37,13 +37,11 @@ void PrimitiveObjects::SetUpQuadbrdf() {
                         (void*)(3 * sizeof(float)));
 }
 
-void PrimitiveObjects::RenderQuadbrdf()
-{
+void PrimitiveObjects::RenderQuadbrdf() {
   glBindVertexArray(quad_vao_);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   glBindVertexArray(0);
 }
-
 
 void PrimitiveObjects::SetUpPlane() {
   glGenVertexArrays(1, &plane_vao_);
@@ -53,13 +51,16 @@ void PrimitiveObjects::SetUpPlane() {
   glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices.data(),
                GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
                         (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
                         (void*)(6 * sizeof(float)));
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+                        (void*)(8 * sizeof(float)));
   glBindVertexArray(0);
 }
 
@@ -92,7 +93,6 @@ void PrimitiveObjects::SetUpCube() {
                cubeIndices_.data(), GL_STATIC_DRAW);
 }
 
-
 void PrimitiveObjects::SetUpCubeMap() {
   glCreateVertexArrays(1, &cube_vao_);
   glBindVertexArray(cube_vao_);
@@ -100,8 +100,7 @@ void PrimitiveObjects::SetUpCubeMap() {
   glGenBuffers(1, &cube_vbo_[0]);
   glBindBuffer(GL_ARRAY_BUFFER, cube_vbo_[0]);
   glBufferData(GL_ARRAY_BUFFER, sizeof(cubeMapVertices_),
-               cubeMapVertices_.data(),
-               GL_STATIC_DRAW);
+               cubeMapVertices_.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
