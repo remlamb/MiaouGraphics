@@ -11,7 +11,8 @@
 - PostProcessing Bloom and Filter
 
 ## DevBlog link 
-https://remlamb.github.io/3d_scene/scene.html
+[https://remlamb.github.io/ ](https://remlamb.github.io/3d_scene/scene.html)
+
 
 ## Prerequisites
 - CMake for building in Visual Studio 
