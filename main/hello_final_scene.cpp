@@ -319,6 +319,7 @@ class HelloFinalScene final : public Scene {
 
   float ssaoRadius_ = 0.12f;
   float ssaoBias_ = 0.025f;
+  float gamma_ = 2.0f;
 
   // SSAO
   const std::string_view GeometryPassVertexShaderFilePath_ =
@@ -809,6 +810,7 @@ void HelloFinalScene::DrawImGui() {
         directional_light_intensity_ = 1.2f;
         ssaoRadius_ = 0.2f;
         bloomStrength_ = 0.12f;
+        gamma_ = 2.0f;
       }
       ImGui::SameLine();
       if (ImGui::Button("Powerfull Pink")) {
@@ -818,6 +820,7 @@ void HelloFinalScene::DrawImGui() {
         directional_light_intensity_ = 6.0f;
         ssaoRadius_ = 0.28f;
         bloomStrength_ = 0.28f;
+        gamma_ = 1.8f;
       }
       ImGui::SameLine();
       if (ImGui::Button("Ambient Purple")) {
@@ -827,6 +830,7 @@ void HelloFinalScene::DrawImGui() {
         directional_light_intensity_ = 1.0f;
         ssaoRadius_ = 0.12f;
         bloomStrength_ = 0.18f;
+        gamma_ = 1.8f;
       }
       ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
                          "Carefull this change all value !");
@@ -850,6 +854,7 @@ void HelloFinalScene::DrawImGui() {
     }
 
     if (ImGui::CollapsingHeader("Post Processing")) {
+      ImGui::SliderFloat("Gamma", &gamma_, 1.6f, 2.40f);
       ImGui::Text("Bloom Effect : ");
       ImGui::SliderFloat("Strength", &bloomStrength_, 0.01f, 0.40f);
       ImGui::Checkbox("Black and White Filter", &black_white_filter_);
@@ -1132,7 +1137,6 @@ void HelloFinalScene::Update(float dt) {
   // render skybox (render as last to prevent overdraw)
 
   glDepthFunc(GL_LEQUAL);
-
   glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
   backgroundShader.SetMat4("view", view);
   backgroundShader.SetMat4("projection", projection);
@@ -1141,6 +1145,7 @@ void HelloFinalScene::Update(float dt) {
   //  use unthresholded bloom with progressive downsample/upsampling
   // -------------------------------------------------------------------
   bloomRenderer.RenderBloomTexture(colorBuffers[1], bloomFilterRadius);
+
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -1151,6 +1156,7 @@ void HelloFinalScene::Update(float dt) {
   glBindTexture(GL_TEXTURE_2D, bloomRenderer.BloomTexture());
 
   shaderBloomFinal.SetInt("programChoice", programChoice);
+  shaderBloomFinal.SetFloat("gamma", gamma_);
   shaderBloomFinal.SetFloat("exposure", exposure);
   shaderBloomFinal.SetFloat("bloomStrength", bloomStrength_);
   shaderBloomFinal.SetBool("BnWFilter", black_white_filter_);
@@ -1162,7 +1168,6 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
     case SDL_WINDOWEVENT: {
       switch (event.window.event) {
         case SDL_WINDOWEVENT_RESIZED: {
-          // TODO FIX RESIZED WIDOW EVEN NOT CURRENTLY WORKING
           const auto new_size =
               glm::uvec2(event.window.data1, event.window.data2);
 
@@ -1188,20 +1193,6 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
           glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, new_size.x, new_size.y, 0,
                        GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-          // glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-          glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, new_size.x, new_size.y, 0,
-                       GL_RGBA, GL_FLOAT, NULL);
-
-          glBindTexture(GL_TEXTURE_2D, colorBuffers[1]);
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, new_size.x, new_size.y, 0,
-                       GL_RGBA, GL_FLOAT, NULL);
-          // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-          glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-          glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_ATTACHMENT,
-                                new_size.x, new_size.y);
-
           glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[0]);
           glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, new_size.x, new_size.y, 0,
                        GL_RGBA, GL_FLOAT, NULL);
@@ -1221,6 +1212,26 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
           glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, new_size.x, new_size.y, 0,
                        GL_RGBA, GL_FLOAT, NULL);
 
+          glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+          for (unsigned int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Engine::screen_width_,
+                         Engine::screen_height_, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            // attach texture to framebuffer
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
+                                   GL_TEXTURE_2D, colorBuffers[i], 0);
+          }
+
+          glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+          glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                                Engine::screen_width_, Engine::screen_height_);
+          glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                    GL_RENDERBUFFER, rboDepth);
+         
           break;
         }
         default:

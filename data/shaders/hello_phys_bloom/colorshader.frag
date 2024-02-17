@@ -11,7 +11,7 @@ uniform float bloomStrength = 0.04f;
 uniform int programChoice;
 
 uniform bool BnWFilter;
-
+uniform float gamma = 1.8;
 
 vec3 bloom_none()
 {
@@ -49,7 +49,6 @@ void main()
     //result = vec3(1.0) - exp(-result * exposure);
     result = result / (result + vec3(1.0));
     //gamma correct
-    const float gamma = 1.8;
     result = pow(result, vec3(1.0 / gamma));
     FragColor = vec4(result, 1.0);
 
