@@ -1105,6 +1105,7 @@ void HelloFinalScene::Update(float dt) {
   shaderLight.SetMat4("model", model);
   shaderLight.SetVec3("lightColor", lightColor);
   shaderLight.SetMat4("view", view);
+  shaderLight.SetMat4("projection", projection);
   sphere_.RenderSphere();
 
   glEnable(GL_DEPTH_TEST);
@@ -1178,6 +1179,11 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
                     << std::endl;
 
           glViewport(0, 0, new_size.x, new_size.y);
+          projection =
+              glm::perspective(glm::radians(50.0f),
+                               static_cast<float>(Engine::screen_width_) /
+                                   static_cast<float>(Engine::screen_height_),
+                               0.1f, 100.0f);
 
           glBindRenderbuffer(GL_RENDERBUFFER, SSAOrboDepth);
           glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, new_size.x,
