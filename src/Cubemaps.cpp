@@ -1,6 +1,7 @@
 #include "Cubemaps.h"
 
 #include <stb_image.h>
+#include <Tracy.hpp>
 
 unsigned int Cubemaps::loadCubemap(std::vector<std::string> faces) {
   unsigned int textureID;
@@ -92,6 +93,9 @@ void Cubemaps::GenerateMipMap() {
 }
 
 void Cubemaps::GenerateIrradianceMap(gpr5300::Pipeline irradianceShader) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // pbr : create an irradiance cubemap,and re - scale capture FBO to irradiance
   // scale.
   // --------------------------------------------------------------------------------
@@ -136,6 +140,9 @@ void Cubemaps::GenerateIrradianceMap(gpr5300::Pipeline irradianceShader) {
 }
 
 void Cubemaps::GeneratePrefilterMap(gpr5300::Pipeline prefilterShader) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glGenTextures(1, &prefilterMap);
   glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
   for (unsigned int i = 0; i < 6; ++i) {
@@ -189,6 +196,9 @@ void Cubemaps::GeneratePrefilterMap(gpr5300::Pipeline prefilterShader) {
 }
 
 void Cubemaps::GeneratebrdfLUTText(gpr5300::Pipeline brdfShader) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // pbr: generate a 2D LUT from the BRDF equations used.
   // ----------------------------------------------------
   brdfTextQuad_.SetUpQuadbrdf();

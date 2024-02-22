@@ -1,7 +1,10 @@
 #pragma once
 #include <GL/glew.h>
-
 #include <array>
+#include <vector>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <cmath>
 
 class PrimitiveObjects {
  private:

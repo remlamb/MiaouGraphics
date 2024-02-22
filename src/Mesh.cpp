@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <Tracy.hpp>
 #include <iostream>
 
 #include "stb_image.h"
@@ -85,7 +86,96 @@ void Mesh::Draw(GLuint& program) {
   glActiveTexture(GL_TEXTURE0);
 }
 
+unsigned char* Texture::ReadTextureAsync(const std::string_view file_path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  unsigned char* data = nullptr;
+  std::ifstream file(file_path.data(), std::ios::binary);
+
+  if (!file.is_open()) {
+    data = nullptr;
+    filesize = 0;
+    return data;
+  }
+
+  file.seekg(0, std::ios::end);
+  filesize = static_cast<int>(file.tellg());
+  file.seekg(0, std::ios::beg);
+  data = new unsigned char[filesize];
+  std::cout << "file read" << '\n';
+
+  file.read(reinterpret_cast<char*>(data), filesize);
+  return data;
+}
+
+void Texture::DecompressTexture(unsigned char* data) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  stbi_set_flip_vertically_on_load(is_uv_inverted);
+  imgData_ =
+      stbi_load_from_memory(data, filesize, &width, &height, &nbrChannels, 0);
+  std::cout << "file load" << '\n';
+}
+
+void Texture::UpToGPU(bool SRGB) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  // Load Texture
+  glGenTextures(1, &id);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  GLint internalFormat = 0;
+  GLenum format = 0;
+  if (nbrChannels == 1) {
+    internalFormat = GL_RED;
+    format = GL_RED;
+  } else if (nbrChannels == 2) {
+    internalFormat = GL_RG;
+    format = GL_RG;
+  } else if (nbrChannels == 3) {
+    internalFormat = SRGB ? GL_SRGB : GL_RGB;
+    format = GL_RGB;
+  } else if (nbrChannels == 4) {
+    internalFormat = SRGB ? GL_SRGB_ALPHA : GL_RGBA;
+    format = GL_RGBA;
+  } else {
+    std::cerr << "Texture channel nbr are not suitable" << nbrChannels << "\n";
+  }
+
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format,
+               GL_UNSIGNED_BYTE, imgData_);
+
+  glGenerateMipmap(GL_TEXTURE_2D);
+  stbi_image_free(imgData_);
+}
+
+void Texture::LoadTextureAsync(std::string_view file_path, bool SRGB) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  unsigned char* data = ReadTextureAsync(file_path);
+  DecompressTexture(data);
+  UpToGPU(SRGB);
+}
+
+void Texture::LoadTextureAsync(std::string_view file_path,
+                               bool SRGB, bool is_inverted) {
+  is_uv_inverted = is_inverted;
+  LoadTextureAsync(file_path, SRGB);
+}
+
 void Texture::TextureFromFile(std::string_view file_path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   stbi_set_flip_vertically_on_load(is_uv_inverted);
 
   int width, height, nbrChannels;
@@ -135,6 +225,9 @@ void Texture::TextureFromFile(std::string_view file_path, bool is_inverted) {
 }
 
 void Texture::TextureFromFileRepeat(std::string_view file_path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   stbi_set_flip_vertically_on_load(is_uv_inverted);
 
   int width, height, nbrChannels;
@@ -179,6 +272,9 @@ void Texture::TextureFromFileRepeat(std::string_view file_path) {
 }
 
 void Texture::HDRTextureFromFile(std::string_view file_path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   stbi_set_flip_vertically_on_load(is_uv_inverted);
 
   int width, height, nbrChannels;

@@ -1,5 +1,7 @@
 #include "PrimitiveObjects.h"
 
+
+
 void PrimitiveObjects::SetUpQuad() {
   glGenVertexArrays(1, &quad_vao_);
   glGenBuffers(1, &quad_vbo_);
@@ -139,6 +141,7 @@ void PrimitiveObjects::RenderCubeOpenGL() {
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
 }
+
 
 void PrimitiveObjects::SetUpSphere() {
   if (sphereVAO == 0) {

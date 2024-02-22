@@ -9,7 +9,7 @@
 #include "FrameBuffer.h"
 #include "Mesh.h"
 #include "PrimitiveObjects.h"
-#include "pipeline.h";
+#include "pipeline.h"
 
 class Cubemaps {
  private:

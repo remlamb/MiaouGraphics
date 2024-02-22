@@ -1,6 +1,7 @@
 #pragma once
 #include <GL/glew.h>
 
+#include <fstream>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <string>
@@ -19,6 +20,12 @@ struct Texture {
   std::string type;
   std::string path;
   bool is_uv_inverted = true;
+  int filesize = 0;
+  unsigned char* ReadTextureAsync(const std::string_view file_path);
+  void DecompressTexture(unsigned char* data);
+  void UpToGPU(bool SRGB);
+  void LoadTextureAsync(std::string_view file_path, bool SRGB);
+  void LoadTextureAsync(std::string_view file_path, bool SRGB, bool is_inverted);
   void TextureFromFile(std::string_view file_path);
   void TextureFromFile(std::string_view file_path, bool is_inverted);
   void TextureFromFileRepeat(std::string_view file_path);
@@ -28,6 +35,9 @@ struct Texture {
   void BindTexture(GLenum textureUnit);
   void BindTextureHDR(GLenum textureUnit);
   void BindTextureInt(int textureUnit);
+
+  int width, height, nbrChannels;
+  unsigned char* imgData_ = nullptr;
 };
 
 class Mesh {
@@ -39,7 +49,7 @@ class Mesh {
 
   Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices,
        std::vector<Texture> textures);
-  void Draw(GLuint &program);
+  void Draw(GLuint& program);
 
  private:
   GLuint vbo_, ebo_;

@@ -12,6 +12,17 @@ find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
+option(USE_TRACY "Use Tracy Profiler" OFF)
+
+if (USE_TRACY)
+    # Enable Tracy profiling by setting the preprocessor directive
+    add_compile_definitions(TRACY_ENABLE)
+    # Include Tracy's headers for the entire project
+    include_directories(libs/TracyProfiler/tracy)
+
+    # Add the Tracy source code as part of the project
+    add_library(tracyClient STATIC libs/TracyProfiler/TracyClient.cpp)
+endif()
 
 file(GLOB_RECURSE SHADER_FILES
         "data/*.vert"
@@ -96,6 +107,12 @@ if(MSVC)
     target_link_options(Common PUBLIC /LTCG)
 else()
 
+endif()
+
+if (USE_TRACY)
+    target_compile_definitions(Common PUBLIC TRACY_ENABLE)
+    # Link the TracyClient library
+    target_link_libraries(Common PRIVATE tracyClient)
 endif()
 
 file(GLOB MAIN_FILES main/*.cpp)

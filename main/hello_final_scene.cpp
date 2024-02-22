@@ -24,6 +24,7 @@
 #include "file_utility.h"
 #include "pipeline.h"
 #include "scene.h"
+#include "Tracy.hpp"
 
 namespace gpr5300 {
 class HelloFinalScene final : public Scene {
@@ -145,7 +146,7 @@ class HelloFinalScene final : public Scene {
   const std::string_view catAoFilePath_ =
       "data/model/cat/png_texture/cat_ao_2k.png";
 
-  const std::string_view michelle_model_path = "data/model/Flower/Flower.obj";
+  const std::string_view michelle_model_path = "data/model/Flower/flower_cleanup.obj";
   Model flower_;
 
   const std::string_view tea_model_path = "data/model/Tea/tea.obj";
@@ -360,6 +361,9 @@ class HelloFinalScene final : public Scene {
 };
 
 void HelloFinalScene::CreatePipelines() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   grass2d_pipeline.CreateProgram(grass2dVertexShaderFilePath_,
                                  grass2dFragmentShaderFilePath_);
   pbr_pipeline.CreateProgram(SSAOVertexShaderFilePath_,
@@ -410,6 +414,9 @@ void HelloFinalScene::CreatePipelines() {
 }
 
 void HelloFinalScene::LoadModels() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   cat_.loadModel(cat_model_path.data());
   flower_.loadModel(michelle_model_path.data());
   table_.loadModel(table_model_path.data());
@@ -419,11 +426,14 @@ void HelloFinalScene::LoadModels() {
 }
 
 void HelloFinalScene::LoadTextures() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   catBaseColor.HDRTextureFromFile(catBaseColorFilePath_.data(), false);
-  catNormal.TextureFromFile(catNormalFilePath_.data(), false);
-  catMetallic.TextureFromFile(catMetallicFilePath_.data(), false);
-  catRoughness.TextureFromFile(catRoughnessFilePath_.data(), false);
-  catAo.TextureFromFile(catAoFilePath_.data(), false);
+  catNormal.LoadTextureAsync(catNormalFilePath_.data(), false, false);
+  catMetallic.LoadTextureAsync(catMetallicFilePath_.data(), false, false);
+  catRoughness.LoadTextureAsync(catRoughnessFilePath_.data(), false, false);
+  catAo.LoadTextureAsync(catAoFilePath_.data(), false, false);
 
   goldAlbedo.HDRTextureFromFile(goldAFilePath.data(), false);
   goldMetallic.TextureFromFile(goldMFilePath_.data(), false);
@@ -454,6 +464,9 @@ void HelloFinalScene::LoadTextures() {
 float ourLerp(float a, float b, float f) { return a + f * (b - a); }
 
 void HelloFinalScene::Begin() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   glEnable(GL_DEPTH_TEST);
 

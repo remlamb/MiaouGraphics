@@ -7,6 +7,9 @@ void Model::Draw(GLuint &program) {
 }
 
 void Model::loadModel(std::string path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   Assimp::Importer import;
   const aiScene *scene =
       import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -74,7 +77,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
       indices.push_back(face.mIndices[j]);
     }
   }
-
+  /*
   if (mesh->mMaterialIndex >= 0) {
     aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 
@@ -88,6 +91,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
         material, aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
   }
+  */
 
   // return Mesh(vertices, indices, textures);
   return std::move(Mesh(vertices, indices, textures));

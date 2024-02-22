@@ -1,9 +1,14 @@
 #include "pipeline.h"
 
+#include <Tracy.hpp>
+
 namespace gpr5300 {
 
 GLuint Pipeline::CreateProgram(std::string_view vertex_shader_file_path,
                                std::string_view fragment_shader_file_path) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
   // Load shaders
   const auto vertexContent = LoadFile(vertex_shader_file_path);
   const auto* ptr = vertexContent.data();
@@ -63,7 +68,7 @@ void Pipeline::SetVec3(const std::string_view uniform, glm::vec3 vec3) {
                glm::value_ptr(vec3));
 }
 
-	void Pipeline::SetVec4(const std::string_view uniform, glm::vec4 vec4) {
+void Pipeline::SetVec4(const std::string_view uniform, glm::vec4 vec4) {
   Use();
   glUniform4fv(glGetUniformLocation(program_, uniform.data()), 1,
                glm::value_ptr(vec4));
