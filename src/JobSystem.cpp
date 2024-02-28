@@ -19,23 +19,32 @@
 // }
 
 void Job::Execute() {
+  for (const auto& dependency : dependencies_) {
+    if (!dependency->IsDone()) {
+      dependency->WaitUntilJobIsDone();
+    }
+  }
   Work();
+
+  promise_.set_value();
   status_ = JobStatus::Done;
 }
 
-// Add fonction loop au lieu de passer par la lambda
-//donné la queue au worker pour avoid le dependence, outparam
-void Worker::Start(std::vector<Job*>& jobs) {
-  thread_ = std::thread(&Worker::WorkLoop, this,std::reference_wrapper<std::vector<Job*>>(jobs));
+void Job::AddDependency(const Job* job) noexcept {
+  dependencies_.push_back(job);
 }
 
-void Worker::WorkLoop(std::vector<Job*>& jobs_queue) {
+void Job::WaitUntilJobIsDone() const noexcept { shared_future_.get(); }
+
+void Worker::Start() { thread_ = std::thread(&Worker::WorkLoop, this); }
+
+void Worker::WorkLoop() {
   while (is_running_) {
     Job* job = nullptr;
 
-    if (!jobs_queue.empty()) {
-      job = jobs_queue.front();
-      jobs_queue.erase(jobs_queue.begin());
+    if (!jobs_->empty()) {
+      job = jobs_->front();
+      jobs_->pop();
     } else {
       is_running_ = false;
       break;
@@ -66,8 +75,35 @@ void JobSystem::LaunchWorkers(const int worker_count) {
   workers_.reserve(worker_count);
 
   for (int i = 0; i < worker_count; i++) {
-    workers_.emplace_back();
-    workers_[i].Start(read_texture_jobs_);
+    switch (static_cast<JobType>(i)) {
+      case JobType::ImageFileLoading:
+        workers_.emplace_back(&read_texture_jobs_);
+        workers_[i].Start();
+        break;
+      case JobType::ImageFileDecompressing:
+        workers_.emplace_back(&decompressed_texture_jobs);
+        workers_[i].Start();
+        break;
+      case JobType::TextureToGPU:
+      case JobType::None:
+        break;
+    }
+  }
+	static bool is_running = true;
+  while (is_running) {
+    Job* job = nullptr;
+
+    if (!text_to_gpu.empty()) {
+      job = text_to_gpu.front();
+      text_to_gpu.pop();
+    } else {
+      is_running = false;
+      break;
+    }
+
+    if (job) {
+      job->Execute();
+    }
   }
 }
 
@@ -75,7 +111,18 @@ void JobSystem::AddJob(Job* job) {
 #ifdef TRACY_ENABLE
   ZoneScoped;
 #endif  // TRACY_ENABLE
-  read_texture_jobs_.push_back(job);
+
+  switch (job->type()) {
+    case JobType::ImageFileLoading:
+      read_texture_jobs_.push(job);
+      break;
+    case JobType::ImageFileDecompressing:
+      decompressed_texture_jobs.push(job);
+      break;
+    case JobType::TextureToGPU:
+      text_to_gpu.push(job);
+      break;
+  }
 }
 
 void ReadTextureJob::ReadTextureAsync(const std::string_view file_path) {
@@ -85,17 +132,18 @@ void ReadTextureJob::ReadTextureAsync(const std::string_view file_path) {
   std::ifstream file(file_path.data(), std::ios::binary);
 
   if (!file.is_open()) {
-    data_ = nullptr;
-    filesize_ = 0;
+    file_buffer_->data_ = nullptr;
+    file_buffer_->filesize_ = 0;
   }
 
   file.seekg(0, std::ios::end);
-  filesize_ = static_cast<int>(file.tellg());
+  file_buffer_->filesize_ = static_cast<int>(file.tellg());
   file.seekg(0, std::ios::beg);
-  data_ = new unsigned char[filesize_];
+  file_buffer_->data_ = new unsigned char[file_buffer_->filesize_];
   std::cout << "file read" << '\n';
 
-  file.read(reinterpret_cast<char*>(data_), filesize_);
+  file.read(reinterpret_cast<char*>(file_buffer_->data_),
+            file_buffer_->filesize_);
 }
 
 void ReadTextureJob::Work() {
@@ -103,4 +151,71 @@ void ReadTextureJob::Work() {
   ZoneScoped;
 #endif  // TRACY_ENABLE
   ReadTextureAsync(file_path_);
+}
+
+void DecompressTextureJob::DecompressTexture(unsigned char* data) {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  stbi_set_flip_vertically_on_load(is_uv_inverted);
+  texture_buffer_->imgData_ = stbi_load_from_memory(
+      data, file_buffer_->filesize_, &texture_buffer_->width_,
+      &texture_buffer_->height_, &texture_buffer_->nbrChannels_, 0);
+  std::cout << "file load" << '\n';
+}
+
+void DecompressTextureJob::Work() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif  // TRACY_ENABLE
+  DecompressTexture(file_buffer_->data_);
+}
+
+void TextureToGPUJob::TextureToGPU() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  // Load Texture
+  glGenTextures(1, &texture_buffer_->id);
+  glBindTexture(GL_TEXTURE_2D, texture_buffer_->id);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  GLint internalFormat = 0;
+  GLenum format = 0;
+  if (texture_buffer_->nbrChannels_ == 1) {
+    internalFormat = GL_RED;
+    format = GL_RED;
+  } else if (texture_buffer_->nbrChannels_ == 2) {
+    internalFormat = GL_RG;
+    format = GL_RG;
+  } else if (texture_buffer_->nbrChannels_ == 3) {
+    internalFormat = srgb_ ? GL_SRGB : GL_RGB;
+    format = GL_RGB;
+  } else if (texture_buffer_->nbrChannels_ == 4) {
+    internalFormat = srgb_ ? GL_SRGB_ALPHA : GL_RGBA;
+    format = GL_RGBA;
+  } else {
+    std::cerr << "Texture channel nbr are not suitable"
+              << texture_buffer_->nbrChannels_ << "\n";
+  }
+
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, texture_buffer_->width_,
+               texture_buffer_->height_, 0, format, GL_UNSIGNED_BYTE,
+               texture_buffer_->imgData_);
+
+  glGenerateMipmap(GL_TEXTURE_2D);
+  std::cout << "file UP" << '\n';
+  std::cout << texture_buffer_->id << '\n';
+  stbi_image_free(texture_buffer_->imgData_);
+}
+
+void TextureToGPUJob::Work() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif  // TRACY_ENABLE
+  TextureToGPU();
 }

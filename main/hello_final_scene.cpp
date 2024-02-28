@@ -362,9 +362,31 @@ class HelloFinalScene final : public Scene {
   PrimitiveObjects SSAOquad_;
 
   JobSystem job_system_texture;
-  Worker worker_;
 
-  ReadTextureJob texture;
+  ReadTextureJob texture{};
+  ReadTextureJob texture2{};
+  ReadTextureJob texture3{};
+  ReadTextureJob texture4{};
+
+  FileBuffer fb1;
+  FileBuffer fb2;
+  FileBuffer fb3;
+  FileBuffer fb4;
+
+  TextureBuffer tb1;
+  TextureBuffer tb2;
+  TextureBuffer tb3;
+  TextureBuffer tb4;
+
+  DecompressTextureJob decompress_texture_{};
+  DecompressTextureJob decompress_texture2{};
+  DecompressTextureJob decompress_texture3{};
+  DecompressTextureJob decompress_texture4{};
+
+  TextureToGPUJob textToGPU1{};
+  TextureToGPUJob textToGPU2{};
+  TextureToGPUJob textToGPU3{};
+  TextureToGPUJob textToGPU4{};
 };
 
 void HelloFinalScene::CreatePipelines() {
@@ -437,10 +459,10 @@ void HelloFinalScene::LoadTextures() {
   ZoneScoped;
 #endif
   catBaseColor.HDRTextureFromFile(catBaseColorFilePath_.data(), false);
-  catNormal.LoadTextureAsync(catNormalFilePath_.data(), false, false);
-  catMetallic.LoadTextureAsync(catMetallicFilePath_.data(), false, false);
-  catRoughness.LoadTextureAsync(catRoughnessFilePath_.data(), false, false);
-  catAo.LoadTextureAsync(catAoFilePath_.data(), false, false);
+  // catNormal.LoadTextureAsync(catNormalFilePath_.data(), false, false);
+  // catMetallic.LoadTextureAsync(catMetallicFilePath_.data(), false, false);
+  // catRoughness.LoadTextureAsync(catRoughnessFilePath_.data(), false, false);
+  // catAo.LoadTextureAsync(catAoFilePath_.data(), false, false);
 
   goldAlbedo.HDRTextureFromFile(goldAFilePath.data(), false);
   goldMetallic.TextureFromFile(goldMFilePath_.data(), false);
@@ -467,21 +489,51 @@ void HelloFinalScene::LoadTextures() {
 
   grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
 
-  job_system_texture.read_texture_jobs_.reserve(4);
+  texture = ReadTextureJob(catNormalFilePath_.data(), &fb1);
+  texture2 = ReadTextureJob(catMetallicFilePath_.data(), &fb2);
+  texture3 = ReadTextureJob(catRoughnessFilePath_.data(), &fb3);
+  texture4 = ReadTextureJob(catAoFilePath_.data(), &fb4);
 
-  ReadTextureJob texture(catNormalFilePath_.data());
-  ReadTextureJob texture2(catMetallicFilePath_.data());
-  ReadTextureJob texture3(catRoughnessFilePath_.data());
-  ReadTextureJob texture4(catAoFilePath_.data());
-
-  // job_system_texture.AddJob(new ReadTextureJob(catNormalFilePath_.data()));
   job_system_texture.AddJob(&texture);
   job_system_texture.AddJob(&texture2);
   job_system_texture.AddJob(&texture3);
   job_system_texture.AddJob(&texture4);
 
-  job_system_texture.LaunchWorkers(1);
+  decompress_texture_ = DecompressTextureJob(&fb1, false, &tb1);
+  decompress_texture_.AddDependency(&texture);
+  decompress_texture2 = DecompressTextureJob(&fb2, false, &tb2);
+  decompress_texture2.AddDependency(&texture2);
+  decompress_texture3 = DecompressTextureJob(&fb3, false, &tb3);
+  decompress_texture3.AddDependency(&texture3);
+  decompress_texture4 = DecompressTextureJob(&fb4, false, &tb4);
+  decompress_texture4.AddDependency(&texture4);
+
+  job_system_texture.AddJob(&decompress_texture_);
+  job_system_texture.AddJob(&decompress_texture2);
+  job_system_texture.AddJob(&decompress_texture3);
+  job_system_texture.AddJob(&decompress_texture4);
+
+  textToGPU1 = TextureToGPUJob(&tb1);
+  textToGPU1.AddDependency(&decompress_texture_);
+  textToGPU2 = TextureToGPUJob(&tb2);
+  textToGPU2.AddDependency(&decompress_texture2);
+  textToGPU3 = TextureToGPUJob(&tb3);
+  textToGPU3.AddDependency(&decompress_texture3);
+  textToGPU4 = TextureToGPUJob(&tb4);
+  textToGPU4.AddDependency(&decompress_texture4);
+
+  job_system_texture.AddJob(&textToGPU1);
+  job_system_texture.AddJob(&textToGPU2);
+  job_system_texture.AddJob(&textToGPU3);
+  job_system_texture.AddJob(&textToGPU4);
+
+  job_system_texture.LaunchWorkers(3);
   job_system_texture.JoinWorkers();
+
+  catNormal.id = tb1.id;
+  catMetallic.id = tb2.id;
+  catRoughness.id = tb3.id;
+  catAo.id = tb4.id;
 }
 
 float ourLerp(float a, float b, float f) { return a + f * (b - a); }
@@ -906,6 +958,7 @@ void HelloFinalScene::DrawImGui() {
                          "https://github.com/remlamb/MiaouGraphics");
     }
   }
+  ImGui::End();
 }
 
 void HelloFinalScene::End() {

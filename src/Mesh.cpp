@@ -216,6 +216,7 @@ void Texture::TextureFromFile(std::string_view file_path) {
                internalFormat, GL_UNSIGNED_BYTE, data);
 
   glGenerateMipmap(GL_TEXTURE_2D);
+  std::cout << id << '\n';
   stbi_image_free(data);
 }
 
