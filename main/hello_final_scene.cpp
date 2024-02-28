@@ -17,14 +17,15 @@
 #include "Cubemaps.h"
 #include "FrameBuffer.h"
 #include "InstantiateGrass.h"
+#include "JobSystem.h"
 #include "Model.h"
 #include "PrimitiveObjects.h"
 #include "Shadowmap.h"
+#include "Tracy.hpp"
 #include "engine.h"
 #include "file_utility.h"
 #include "pipeline.h"
 #include "scene.h"
-#include "Tracy.hpp"
 
 namespace gpr5300 {
 class HelloFinalScene final : public Scene {
@@ -146,7 +147,8 @@ class HelloFinalScene final : public Scene {
   const std::string_view catAoFilePath_ =
       "data/model/cat/png_texture/cat_ao_2k.png";
 
-  const std::string_view michelle_model_path = "data/model/Flower/flower_cleanup.obj";
+  const std::string_view michelle_model_path =
+      "data/model/Flower/flower_cleanup.obj";
   Model flower_;
 
   const std::string_view tea_model_path = "data/model/Tea/tea.obj";
@@ -358,6 +360,11 @@ class HelloFinalScene final : public Scene {
 
   PrimitiveObjects SSAOcube_;
   PrimitiveObjects SSAOquad_;
+
+  JobSystem job_system_texture;
+  Worker worker_;
+
+  ReadTextureJob texture;
 };
 
 void HelloFinalScene::CreatePipelines() {
@@ -459,6 +466,22 @@ void HelloFinalScene::LoadTextures() {
   lanternRoughness.TextureFromFile(lanternRFilePath_.data(), false);
 
   grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
+
+  job_system_texture.read_texture_jobs_.reserve(4);
+
+  ReadTextureJob texture(catNormalFilePath_.data());
+  ReadTextureJob texture2(catMetallicFilePath_.data());
+  ReadTextureJob texture3(catRoughnessFilePath_.data());
+  ReadTextureJob texture4(catAoFilePath_.data());
+
+  // job_system_texture.AddJob(new ReadTextureJob(catNormalFilePath_.data()));
+  job_system_texture.AddJob(&texture);
+  job_system_texture.AddJob(&texture2);
+  job_system_texture.AddJob(&texture3);
+  job_system_texture.AddJob(&texture4);
+
+  job_system_texture.LaunchWorkers(1);
+  job_system_texture.JoinWorkers();
 }
 
 float ourLerp(float a, float b, float f) { return a + f * (b - a); }
@@ -1160,7 +1183,6 @@ void HelloFinalScene::Update(float dt) {
   // -------------------------------------------------------------------
   bloomRenderer.RenderBloomTexture(colorBuffers[1], bloomFilterRadius);
 
-
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT);
   shaderBloomFinal.Use();
@@ -1250,7 +1272,7 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
                                 Engine::screen_width_, Engine::screen_height_);
           glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                     GL_RENDERBUFFER, rboDepth);
-         
+
           break;
         }
         default:
