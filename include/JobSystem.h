@@ -49,6 +49,7 @@ class Job {
 
   void Execute();
   void AddDependency(const Job* job) noexcept;
+  bool IsReadyToStart() noexcept;
 
   void WaitUntilJobIsDone() const noexcept;
 
@@ -89,7 +90,6 @@ class JobSystem {
 
   std::queue<Job*> read_texture_jobs_{};  // switch to queue
   std::queue<Job*> decompressed_texture_jobs{};
-  std::queue<Job*> text_to_gpu{};
 
  private:
   std::vector<Worker> workers_{};

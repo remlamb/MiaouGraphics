@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <Tracy.hpp>
 #include <glm/vec2.hpp>
 
 namespace gpr5300 {
@@ -76,6 +77,9 @@ void Engine::Run() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(window_);
+#ifdef TRACY_ENABLE
+    FrameMark;
+#endif
   }
   End();
 }

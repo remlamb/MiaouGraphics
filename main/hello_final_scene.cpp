@@ -33,7 +33,9 @@ class HelloFinalScene final : public Scene {
   void CreatePipelines();
   void LoadModels();
   void LoadTextures();
+  void MoveLoadedId();
   void LoadTexturesAsync();
+  void SetUpSceneElements();
   void Begin() override;
   void DrawImGui() override;
   void End() override;
@@ -524,6 +526,10 @@ class HelloFinalScene final : public Scene {
   TextureToGPUJob texture_lantern_roughness_toGPU{};
 
   TextureToGPUJob texture_grass_toGPU{};
+
+  std::queue<Job*> text_to_gpu{};
+
+  bool is_data_initialized = false;
 };
 
 void HelloFinalScene::CreatePipelines() {
@@ -625,6 +631,39 @@ void HelloFinalScene::LoadTextures() {
   lanternRoughness.TextureFromFile(lanternRFilePath_.data(), false);
 
   grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
+}
+
+void HelloFinalScene::MoveLoadedId() {
+  catBaseColor.id = texturebuffer_albedo_cat.id;
+  catNormal.id = texturebuffer_normal_cat.id;
+  catMetallic.id = texturebuffer_metallic_cat.id;
+  catRoughness.id = texturebuffer_roughness_cat.id;
+  catAo.id = texturebuffer_ao_cat.id;
+
+  goldAlbedo.id = texturebuffer_albedo_gold.id;
+  goldNormal.id = texturebuffer_normal_gold.id;
+  goldMetallic.id = texturebuffer_metallic_gold.id;
+  goldRoughness.id = texturebuffer_roughness_gold.id;
+  goldAO.id = texturebuffer_ao_gold.id;
+
+  TableAlbedo.id = texturebuffer_albedo_table.id;
+  TableNormal.id = texturebuffer_normal_table.id;
+  TableMetallic.id = texturebuffer_metallic_table.id;
+  TableRoughness.id = texturebuffer_roughness_table.id;
+  TableAO.id = texturebuffer_ao_table.id;
+
+  meaAlbedo.id = texturebuffer_albedo_mea.id;
+  meaNormal.id = texturebuffer_normal_mea.id;
+  meaMetallic.id = texturebuffer_metallic_mea.id;
+  meaRoughness.id = texturebuffer_roughness_mea.id;
+  meaAO.id = texturebuffer_ao_mea.id;
+
+  lanternAlbedo.id = texturebuffer_albedo_lantern.id;
+  lanternNormal.id = texturebuffer_normal_lantern.id;
+  lanternMetallic.id = texturebuffer_metallic_lantern.id;
+  lanternRoughness.id = texturebuffer_roughness_lantern.id;
+
+  grass_texture_.id = texturebuffer_grass.id;
 }
 
 void HelloFinalScene::LoadTexturesAsync() {
@@ -845,11 +884,11 @@ void HelloFinalScene::LoadTexturesAsync() {
   texture_cat_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_cat);
   texture_cat_ao_toGPU.AddDependency(&decompress_texture_cat_ao);
 
-  job_system_texture.AddJob(&texture_cat_albedo_toGPU);
-  job_system_texture.AddJob(&texture_cat_normal_toGPU);
-  job_system_texture.AddJob(&texture_cat_metallic_toGPU);
-  job_system_texture.AddJob(&texture_cat_roughness_toGPU);
-  job_system_texture.AddJob(&texture_cat_ao_toGPU);
+  text_to_gpu.push(&texture_cat_albedo_toGPU);
+  text_to_gpu.push(&texture_cat_normal_toGPU);
+  text_to_gpu.push(&texture_cat_metallic_toGPU);
+  text_to_gpu.push(&texture_cat_roughness_toGPU);
+  text_to_gpu.push(&texture_cat_ao_toGPU);
 
   texture_gold_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_gold);
   texture_gold_albedo_toGPU.srgb_ = true;
@@ -864,11 +903,11 @@ void HelloFinalScene::LoadTexturesAsync() {
   texture_gold_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_gold);
   texture_gold_ao_toGPU.AddDependency(&decompress_texture_gold_ao);
 
-  job_system_texture.AddJob(&texture_gold_albedo_toGPU);
-  job_system_texture.AddJob(&texture_gold_normal_toGPU);
-  job_system_texture.AddJob(&texture_gold_metallic_toGPU);
-  job_system_texture.AddJob(&texture_gold_roughness_toGPU);
-  job_system_texture.AddJob(&texture_gold_ao_toGPU);
+  text_to_gpu.push(&texture_gold_albedo_toGPU);
+  text_to_gpu.push(&texture_gold_normal_toGPU);
+  text_to_gpu.push(&texture_gold_metallic_toGPU);
+  text_to_gpu.push(&texture_gold_roughness_toGPU);
+  text_to_gpu.push(&texture_gold_ao_toGPU);
 
   texture_table_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_table);
   texture_table_albedo_toGPU.srgb_ = true;
@@ -885,11 +924,11 @@ void HelloFinalScene::LoadTexturesAsync() {
   texture_table_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_table);
   texture_table_ao_toGPU.AddDependency(&decompress_texture_table_ao);
 
-  job_system_texture.AddJob(&texture_table_albedo_toGPU);
-  job_system_texture.AddJob(&texture_table_normal_toGPU);
-  job_system_texture.AddJob(&texture_table_metallic_toGPU);
-  job_system_texture.AddJob(&texture_table_roughness_toGPU);
-  job_system_texture.AddJob(&texture_table_ao_toGPU);
+  text_to_gpu.push(&texture_table_albedo_toGPU);
+  text_to_gpu.push(&texture_table_normal_toGPU);
+  text_to_gpu.push(&texture_table_metallic_toGPU);
+  text_to_gpu.push(&texture_table_roughness_toGPU);
+  text_to_gpu.push(&texture_table_ao_toGPU);
 
   texture_mea_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_mea);
   texture_mea_albedo_toGPU.isRepeated = true;
@@ -908,11 +947,11 @@ void HelloFinalScene::LoadTexturesAsync() {
   texture_mea_ao_toGPU.isRepeated = true;
   texture_mea_ao_toGPU.AddDependency(&decompress_texture_mea_ao);
 
-  job_system_texture.AddJob(&texture_mea_albedo_toGPU);
-  job_system_texture.AddJob(&texture_mea_normal_toGPU);
-  job_system_texture.AddJob(&texture_mea_metallic_toGPU);
-  job_system_texture.AddJob(&texture_mea_roughness_toGPU);
-  job_system_texture.AddJob(&texture_mea_ao_toGPU);
+  text_to_gpu.push(&texture_mea_albedo_toGPU);
+  text_to_gpu.push(&texture_mea_normal_toGPU);
+  text_to_gpu.push(&texture_mea_metallic_toGPU);
+  text_to_gpu.push(&texture_mea_roughness_toGPU);
+  text_to_gpu.push(&texture_mea_ao_toGPU);
 
   texture_lantern_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_lantern);
   texture_lantern_albedo_toGPU.srgb_ = true;
@@ -930,60 +969,23 @@ void HelloFinalScene::LoadTexturesAsync() {
   texture_lantern_roughness_toGPU.AddDependency(
       &decompress_texture_lantern_roughness);
 
-  job_system_texture.AddJob(&texture_lantern_albedo_toGPU);
-  job_system_texture.AddJob(&texture_lantern_normal_toGPU);
-  job_system_texture.AddJob(&texture_lantern_metallic_toGPU);
-  job_system_texture.AddJob(&texture_lantern_roughness_toGPU);
+  text_to_gpu.push(&texture_lantern_albedo_toGPU);
+  text_to_gpu.push(&texture_lantern_normal_toGPU);
+  text_to_gpu.push(&texture_lantern_metallic_toGPU);
+  text_to_gpu.push(&texture_lantern_roughness_toGPU);
 
   texture_grass_toGPU = TextureToGPUJob(&texturebuffer_grass);
   texture_grass_toGPU.AddDependency(&decompress_texture_grass);
-  job_system_texture.AddJob(&texture_grass_toGPU);
+  text_to_gpu.push(&texture_grass_toGPU);
 
-  job_system_texture.LaunchWorkers(3);
-  job_system_texture.JoinWorkers();
-
-  catBaseColor.id = texturebuffer_albedo_cat.id;
-  catNormal.id = texturebuffer_normal_cat.id;
-  catMetallic.id = texturebuffer_metallic_cat.id;
-  catRoughness.id = texturebuffer_roughness_cat.id;
-  catAo.id = texturebuffer_ao_cat.id;
-
-  goldAlbedo.id = texturebuffer_albedo_gold.id;
-  goldNormal.id = texturebuffer_normal_gold.id;
-  goldMetallic.id = texturebuffer_metallic_gold.id;
-  goldRoughness.id = texturebuffer_roughness_gold.id;
-  goldAO.id = texturebuffer_ao_gold.id;
-
-  TableAlbedo.id = texturebuffer_albedo_table.id;
-  TableNormal.id = texturebuffer_normal_table.id;
-  TableMetallic.id = texturebuffer_metallic_table.id;
-  TableRoughness.id = texturebuffer_roughness_table.id;
-  TableAO.id = texturebuffer_ao_table.id;
-
-  meaAlbedo.id = texturebuffer_albedo_mea.id;
-  meaNormal.id = texturebuffer_normal_mea.id;
-  meaMetallic.id = texturebuffer_metallic_mea.id;
-  meaRoughness.id = texturebuffer_roughness_mea.id;
-  meaAO.id = texturebuffer_ao_mea.id;
-
-  lanternAlbedo.id = texturebuffer_albedo_lantern.id;
-  lanternNormal.id = texturebuffer_normal_lantern.id;
-  lanternMetallic.id = texturebuffer_metallic_lantern.id;
-  lanternRoughness.id = texturebuffer_roughness_lantern.id;
-
-  grass_texture_.id = texturebuffer_grass.id;
+  job_system_texture.LaunchWorkers(2);
 }
 
 float ourLerp(float a, float b, float f) { return a + f * (b - a); }
 
-void HelloFinalScene::Begin() {
-#ifdef TRACY_ENABLE
-  ZoneScoped;
-#endif
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-  glEnable(GL_DEPTH_TEST);
+void HelloFinalScene::SetUpSceneElements() {
+  CreatePipelines();
 
-  // quad_.SetUpQuad();
   cube_.SetUpCube();
   sphere_.SetUpSphere();
   lightCube_.SetUpCubeOpenGL();
@@ -991,14 +993,7 @@ void HelloFinalScene::Begin() {
   bloomquad_.SetUpQuadbrdf();
   SSAOquad_.SetUpQuadbrdf();
 
-  CreatePipelines();
   LoadModels();
-  //LoadTextures();
-  LoadTexturesAsync();
-
-  grass_.SetUp();
-  hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
-  shadowmap_.SetUp();
 
   pbr_pipeline.SetInt("irradianceMap", 0);
   pbr_pipeline.SetInt("prefilterMap", 1);
@@ -1087,8 +1082,8 @@ void HelloFinalScene::Begin() {
     glTexParameteri(
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
         GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would
-                            // otherwise sample repeated read_texture_cat_normal
-                            // values!
+    // otherwise sample repeated read_texture_cat_normal
+    // values!
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     // attach read_texture_cat_normal to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
@@ -1125,8 +1120,8 @@ void HelloFinalScene::Begin() {
     glTexParameteri(
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
         GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would
-                            // otherwise sample repeated read_texture_cat_normal
-                            // values!
+    // otherwise sample repeated read_texture_cat_normal
+    // values!
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            pingpongColorbuffers[i], 0);
@@ -1285,121 +1280,165 @@ void HelloFinalScene::Begin() {
   shaderSSAOBlur.SetInt("ssaoInput", 0);
 }
 
+void HelloFinalScene::Begin() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+  glEnable(GL_DEPTH_TEST);
+
+  // LoadTextures();
+
+  grass_.SetUp();
+  hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
+  shadowmap_.SetUp();
+
+  LoadTexturesAsync();
+}
+
 void HelloFinalScene::DrawImGui() {
-  if (main_window) {
-    static float f = 0.0f;
-    static int counter = 0;
+  if (is_data_initialized) {
+    if (main_window) {
+      static float f = 0.0f;
+      static int counter = 0;
 
-    ImGui::Begin("Miaou Settings :");
+      ImGui::Begin("Miaou Settings :");
 
-    ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
-                       "Welcome to Xiequ Yuan !");
-    if (ImGui::CollapsingHeader("Camera control")) {
-      ImGui::Text("W : move toward, S : move Backward");
-      ImGui::Text("A : move left, D : move right");
-      ImGui::Text("SPACE : move Up, CTRL : move Down");
-      ImGui::Text("Camera rotate with the mouse position");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
-    }
-
-    if (ImGui::CollapsingHeader("Materials Settings : ")) {
-      ImGui::Text("Change Flower Value : ");
-      ImGui::SliderFloat("Roughness", &flower_roughness, 0.05f, 1.0f);
-      ImGui::SliderFloat("Metalic", &flower_metalic, 0.05f, 1.0f);
-      ImGui::SliderFloat("AO", &flower_ao, 0.05f, 1.0f);
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
-    }
-
-    if (ImGui::CollapsingHeader("Instantiate")) {
-      ImGui::Checkbox("Show Grass", &instantiate_grass_);
-    }
-
-    if (ImGui::CollapsingHeader("Lightning")) {
-      ImGui::Text("Change Point Light Color : ");
-      ImGui::SliderFloat("Red", &lightRed, 0.01f, 10.0f);
-      ImGui::SliderFloat("Green", &lightGreen, 0.01f, 10.0f);
-      ImGui::SliderFloat("Blue", &lightBlue, 0.01f, 10.0f);
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
-
-      ImGui::Text(" ");
-      ImGui::Text("3 Presets : ");
-      if (ImGui::Button("Solid Blue")) {
-        lightRed = 0.01f;
-        lightGreen = 2.8f;
-        lightBlue = 10.0f;
-        directional_light_intensity_ = 1.2f;
-        ssaoRadius_ = 0.2f;
-        bloomStrength_ = 0.12f;
-        gamma_ = 2.0f;
+      ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
+                         "Welcome to Xiequ Yuan !");
+      if (ImGui::CollapsingHeader("Camera control")) {
+        ImGui::Text("W : move toward, S : move Backward");
+        ImGui::Text("A : move left, D : move right");
+        ImGui::Text("SPACE : move Up, CTRL : move Down");
+        ImGui::Text("Camera rotate with the mouse position");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
       }
-      ImGui::SameLine();
-      if (ImGui::Button("Powerfull Pink")) {
-        lightRed = 10.0f;
-        lightGreen = 2.5f;
-        lightBlue = 10.0f;
-        directional_light_intensity_ = 6.0f;
-        ssaoRadius_ = 0.28f;
-        bloomStrength_ = 0.28f;
-        gamma_ = 1.8f;
+
+      if (ImGui::CollapsingHeader("Materials Settings : ")) {
+        ImGui::Text("Change Flower Value : ");
+        ImGui::SliderFloat("Roughness", &flower_roughness, 0.05f, 1.0f);
+        ImGui::SliderFloat("Metalic", &flower_metalic, 0.05f, 1.0f);
+        ImGui::SliderFloat("AO", &flower_ao, 0.05f, 1.0f);
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
       }
-      ImGui::SameLine();
-      if (ImGui::Button("Ambient Purple")) {
-        lightRed = 4.3f;
-        lightGreen = 1.5f;
-        lightBlue = 5.7f;
-        directional_light_intensity_ = 1.0f;
-        ssaoRadius_ = 0.12f;
-        bloomStrength_ = 0.18f;
-        gamma_ = 1.8f;
+
+      if (ImGui::CollapsingHeader("Instantiate")) {
+        ImGui::Checkbox("Show Grass", &instantiate_grass_);
       }
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "Carefull this change all value !");
 
-      ImGui::Text(" ");
-      ImGui::Text("Change Directional light : ");
-      ImGui::SliderFloat("Intensity", &directional_light_intensity_, 1.0f,
-                         10.0f);
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
-    }
+      if (ImGui::CollapsingHeader("Lightning")) {
+        ImGui::Text("Change Point Light Color : ");
+        ImGui::SliderFloat("Red", &lightRed, 0.01f, 10.0f);
+        ImGui::SliderFloat("Green", &lightGreen, 0.01f, 10.0f);
+        ImGui::SliderFloat("Blue", &lightBlue, 0.01f, 10.0f);
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
 
-    if (ImGui::CollapsingHeader("SSAO")) {
-      ImGui::SliderFloat("Radius", &ssaoRadius_, 0.01f, 0.5f);
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
-    }
+        ImGui::Text(" ");
+        ImGui::Text("3 Presets : ");
+        if (ImGui::Button("Solid Blue")) {
+          lightRed = 0.01f;
+          lightGreen = 2.8f;
+          lightBlue = 10.0f;
+          directional_light_intensity_ = 1.2f;
+          ssaoRadius_ = 0.2f;
+          bloomStrength_ = 0.12f;
+          gamma_ = 2.0f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Powerfull Pink")) {
+          lightRed = 10.0f;
+          lightGreen = 2.5f;
+          lightBlue = 10.0f;
+          directional_light_intensity_ = 6.0f;
+          ssaoRadius_ = 0.28f;
+          bloomStrength_ = 0.28f;
+          gamma_ = 1.8f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Ambient Purple")) {
+          lightRed = 4.3f;
+          lightGreen = 1.5f;
+          lightBlue = 5.7f;
+          directional_light_intensity_ = 1.0f;
+          ssaoRadius_ = 0.12f;
+          bloomStrength_ = 0.18f;
+          gamma_ = 1.8f;
+        }
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "Carefull this change all value !");
 
-    if (ImGui::CollapsingHeader("Post Processing")) {
-      ImGui::SliderFloat("Gamma", &gamma_, 1.6f, 2.40f);
-      ImGui::Text("Bloom Effect : ");
-      ImGui::SliderFloat("Strength", &bloomStrength_, 0.01f, 0.40f);
-      ImGui::Checkbox("Black and White Filter", &black_white_filter_);
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "R : Freeze Camera Rotation");
-      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "T : reActive Camera Rotation");
+        ImGui::Text(" ");
+        ImGui::Text("Change Directional light : ");
+        ImGui::SliderFloat("Intensity", &directional_light_intensity_, 1.0f,
+                           10.0f);
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
+      }
+
+      if (ImGui::CollapsingHeader("SSAO")) {
+        ImGui::SliderFloat("Radius", &ssaoRadius_, 0.01f, 0.5f);
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
+      }
+
+      if (ImGui::CollapsingHeader("Post Processing")) {
+        ImGui::SliderFloat("Gamma", &gamma_, 1.6f, 2.40f);
+        ImGui::Text("Bloom Effect : ");
+        ImGui::SliderFloat("Strength", &bloomStrength_, 0.01f, 0.40f);
+        ImGui::Checkbox("Black and White Filter", &black_white_filter_);
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "R : Freeze Camera Rotation");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "T : reActive Camera Rotation");
+      }
+      if (ImGui::CollapsingHeader("Info : ")) {
+        ImGui::TextWrapped("If you want to learn more about this scene");
+        ImGui::TextWrapped("you can find a blogpost on the Github's page !");
+        ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                           "https://github.com/remlamb/MiaouGraphics");
+      }
     }
-    if (ImGui::CollapsingHeader("Info : ")) {
-      ImGui::TextWrapped("If you want to learn more about this scene");
-      ImGui::TextWrapped("you can find a blogpost on the Github's page !");
+    ImGui::End();
+  } else {
+    if (main_window) {
+      static float f = 0.0f;
+      static int counter = 0;
+
+      ImGui::Begin("Loading...");
+      ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
+                         "Waiting For Texture !");
+      ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_Once);
+
+      ImGui::Spacing();
+      ImGui::Spacing();
+      ImGui::Spacing(); 
+      ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.65f, 1.0f),
+                         "Camera control : ");
+      ImGui::Text("     W : move toward, S : move Backward");
+      ImGui::Text("     A : move left, D : move right");
+      ImGui::Text("     SPACE : move Up, CTRL : move Down");
+      ImGui::Text("     Camera rotate with the mouse position");
       ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
-                         "https://github.com/remlamb/MiaouGraphics");
+                         "     R : Freeze Camera Rotation");
+      ImGui::TextColored(ImVec4(1.5f, 0.8f, 2.5f, 1.0f),
+                         "     T : reActive Camera Rotation");
+
     }
+    ImGui::End();
   }
-  ImGui::End();
 }
 
 void HelloFinalScene::End() {
@@ -1490,7 +1529,36 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
 }
 
 void HelloFinalScene::Update(float dt) {
-  // colorBuffer.Reset();
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif  // TRACY_ENABLE
+
+  static bool is_data_loaded = false;
+  while (!is_data_loaded) {
+    Job* job = nullptr;
+
+    if (!text_to_gpu.empty()) {
+      job = text_to_gpu.front();
+      if (job->IsReadyToStart()) {
+        job->Execute();
+        text_to_gpu.pop();
+      } else {
+        return;
+      }
+    } else {
+      job_system_texture.JoinWorkers();
+      is_data_loaded = true;
+      break;
+    }
+  }
+
+  if (!is_data_initialized) {
+    SetUpSceneElements();
+    MoveLoadedId();
+    is_data_initialized = true;
+    return;
+  }
+
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 

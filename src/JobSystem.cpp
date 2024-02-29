@@ -34,6 +34,15 @@ void Job::AddDependency(const Job* job) noexcept {
   dependencies_.push_back(job);
 }
 
+bool Job::IsReadyToStart() noexcept {
+  for (const auto& dependency : dependencies_) {
+    if (!dependency->IsDone()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void Job::WaitUntilJobIsDone() const noexcept { shared_future_.get(); }
 
 void Worker::Start() { thread_ = std::thread(&Worker::WorkLoop, this); }
@@ -89,22 +98,6 @@ void JobSystem::LaunchWorkers(const int worker_count) {
         break;
     }
   }
-  static bool is_running = true;
-  while (is_running) {
-    Job* job = nullptr;
-
-    if (!text_to_gpu.empty()) {
-      job = text_to_gpu.front();
-      text_to_gpu.pop();
-    } else {
-      is_running = false;
-      break;
-    }
-
-    if (job) {
-      job->Execute();
-    }
-  }
 }
 
 void JobSystem::AddJob(Job* job) {
@@ -118,9 +111,6 @@ void JobSystem::AddJob(Job* job) {
       break;
     case JobType::ImageFileDecompressing:
       decompressed_texture_jobs.push(job);
-      break;
-    case JobType::TextureToGPU:
-      text_to_gpu.push(job);
       break;
   }
 }
@@ -182,8 +172,7 @@ void TextureToGPUJob::TextureToGPU() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  } else
-  {
+  } else {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
