@@ -165,8 +165,11 @@ class TextureToGPUJob final : public Job {
   ~TextureToGPUJob() override = default;
 
   void Work() override;
+  bool isRepeated = false;
+  bool srgb_ = false;
 
  private:
   TextureBuffer* texture_buffer_;
-  bool srgb_ = false;
+
+
 };

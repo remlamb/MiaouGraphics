@@ -33,6 +33,7 @@ class HelloFinalScene final : public Scene {
   void CreatePipelines();
   void LoadModels();
   void LoadTextures();
+  void LoadTexturesAsync();
   void Begin() override;
   void DrawImGui() override;
   void End() override;
@@ -361,32 +362,168 @@ class HelloFinalScene final : public Scene {
   PrimitiveObjects SSAOcube_;
   PrimitiveObjects SSAOquad_;
 
+  // MultiThreading
   JobSystem job_system_texture;
 
-  ReadTextureJob texture{};
-  ReadTextureJob texture2{};
-  ReadTextureJob texture3{};
-  ReadTextureJob texture4{};
+  // meaMetallic.TextureFromFileRepeat(meaMFilePath_.data());
+  // meaNormal.TextureFromFileRepeat(meaNFilePath_.data());
+  // meaRoughness.TextureFromFileRepeat(meaRFilePath_.data());
+  // meaAO.TextureFromFileRepeat(meaAOFilePath_.data());
 
-  FileBuffer fb1;
-  FileBuffer fb2;
-  FileBuffer fb3;
-  FileBuffer fb4;
+  ReadTextureJob read_texture_cat_albedo{};
+  ReadTextureJob read_texture_cat_normal{};
+  ReadTextureJob read_texture_cat_metallic{};
+  ReadTextureJob read_texture_cat_roughness{};
+  ReadTextureJob read_texture_cat_ao{};
 
-  TextureBuffer tb1;
-  TextureBuffer tb2;
-  TextureBuffer tb3;
-  TextureBuffer tb4;
+  ReadTextureJob read_texture_gold_albedo{};
+  ReadTextureJob read_texture_gold_normal{};
+  ReadTextureJob read_texture_gold_metallic{};
+  ReadTextureJob read_texture_gold_roughness{};
+  ReadTextureJob read_texture_gold_ao{};
 
-  DecompressTextureJob decompress_texture_{};
-  DecompressTextureJob decompress_texture2{};
-  DecompressTextureJob decompress_texture3{};
-  DecompressTextureJob decompress_texture4{};
+  ReadTextureJob read_texture_table_albedo{};
+  ReadTextureJob read_texture_table_normal{};
+  ReadTextureJob read_texture_table_metallic{};
+  ReadTextureJob read_texture_table_roughness{};
+  ReadTextureJob read_texture_table_ao{};
 
-  TextureToGPUJob textToGPU1{};
-  TextureToGPUJob textToGPU2{};
-  TextureToGPUJob textToGPU3{};
-  TextureToGPUJob textToGPU4{};
+  ReadTextureJob read_texture_mea_albedo{};
+  ReadTextureJob read_texture_mea_normal{};
+  ReadTextureJob read_texture_mea_metallic{};
+  ReadTextureJob read_texture_mea_roughness{};
+  ReadTextureJob read_texture_mea_ao{};
+
+  ReadTextureJob read_texture_lantern_albedo{};
+  ReadTextureJob read_texture_lantern_normal{};
+  ReadTextureJob read_texture_lantern_metallic{};
+  ReadTextureJob read_texture_lantern_roughness{};
+
+  ReadTextureJob read_texture_grass{};
+
+  FileBuffer filebuffer_albedo_cat;
+  FileBuffer filebuffer_normal_cat;
+  FileBuffer filebuffer_metallic_cat;
+  FileBuffer filebuffer_roughness_cat;
+  FileBuffer filebuffer_ao_cat;
+
+  FileBuffer filebuffer_albedo_gold;
+  FileBuffer filebuffer_normal_gold;
+  FileBuffer filebuffer_metallic_gold;
+  FileBuffer filebuffer_roughness_gold;
+  FileBuffer filebuffer_ao_gold;
+
+  FileBuffer filebuffer_albedo_table;
+  FileBuffer filebuffer_normal_table;
+  FileBuffer filebuffer_metallic_table;
+  FileBuffer filebuffer_roughness_table;
+  FileBuffer filebuffer_ao_table;
+
+  FileBuffer filebuffer_albedo_mea;
+  FileBuffer filebuffer_normal_mea;
+  FileBuffer filebuffer_metallic_mea;
+  FileBuffer filebuffer_roughness_mea;
+  FileBuffer filebuffer_ao_mea;
+
+  FileBuffer filebuffer_albedo_lantern;
+  FileBuffer filebuffer_normal_lantern;
+  FileBuffer filebuffer_metallic_lantern;
+  FileBuffer filebuffer_roughness_lantern;
+
+  FileBuffer filebuffer_grass;
+
+  TextureBuffer texturebuffer_albedo_cat;
+  TextureBuffer texturebuffer_normal_cat;
+  TextureBuffer texturebuffer_metallic_cat;
+  TextureBuffer texturebuffer_roughness_cat;
+  TextureBuffer texturebuffer_ao_cat;
+
+  TextureBuffer texturebuffer_albedo_gold;
+  TextureBuffer texturebuffer_normal_gold;
+  TextureBuffer texturebuffer_metallic_gold;
+  TextureBuffer texturebuffer_roughness_gold;
+  TextureBuffer texturebuffer_ao_gold;
+
+  TextureBuffer texturebuffer_albedo_table;
+  TextureBuffer texturebuffer_normal_table;
+  TextureBuffer texturebuffer_metallic_table;
+  TextureBuffer texturebuffer_roughness_table;
+  TextureBuffer texturebuffer_ao_table;
+
+  TextureBuffer texturebuffer_albedo_mea;
+  TextureBuffer texturebuffer_normal_mea;
+  TextureBuffer texturebuffer_metallic_mea;
+  TextureBuffer texturebuffer_roughness_mea;
+  TextureBuffer texturebuffer_ao_mea;
+
+  TextureBuffer texturebuffer_albedo_lantern;
+  TextureBuffer texturebuffer_normal_lantern;
+  TextureBuffer texturebuffer_metallic_lantern;
+  TextureBuffer texturebuffer_roughness_lantern;
+
+  TextureBuffer texturebuffer_grass;
+
+  DecompressTextureJob decompress_texture_cat_albedo{};
+  DecompressTextureJob decompress_texture_cat_normal{};
+  DecompressTextureJob decompress_texture_cat_metallic{};
+  DecompressTextureJob decompress_texture_cat_roughness{};
+  DecompressTextureJob decompress_texture_cat_ao{};
+
+  DecompressTextureJob decompress_texture_gold_albedo{};
+  DecompressTextureJob decompress_texture_gold_normal{};
+  DecompressTextureJob decompress_texture_gold_metallic{};
+  DecompressTextureJob decompress_texture_gold_roughness{};
+  DecompressTextureJob decompress_texture_gold_ao{};
+
+  DecompressTextureJob decompress_texture_table_albedo{};
+  DecompressTextureJob decompress_texture_table_normal{};
+  DecompressTextureJob decompress_texture_table_metallic{};
+  DecompressTextureJob decompress_texture_table_roughness{};
+  DecompressTextureJob decompress_texture_table_ao{};
+
+  DecompressTextureJob decompress_texture_mea_albedo{};
+  DecompressTextureJob decompress_texture_mea_normal{};
+  DecompressTextureJob decompress_texture_mea_metallic{};
+  DecompressTextureJob decompress_texture_mea_roughness{};
+  DecompressTextureJob decompress_texture_mea_ao{};
+
+  DecompressTextureJob decompress_texture_lantern_albedo{};
+  DecompressTextureJob decompress_texture_lantern_normal{};
+  DecompressTextureJob decompress_texture_lantern_metallic{};
+  DecompressTextureJob decompress_texture_lantern_roughness{};
+
+  DecompressTextureJob decompress_texture_grass{};
+
+  TextureToGPUJob texture_cat_albedo_toGPU{};
+  TextureToGPUJob texture_cat_normal_toGPU{};
+  TextureToGPUJob texture_cat_metallic_toGPU{};
+  TextureToGPUJob texture_cat_roughness_toGPU{};
+  TextureToGPUJob texture_cat_ao_toGPU{};
+
+  TextureToGPUJob texture_gold_albedo_toGPU{};
+  TextureToGPUJob texture_gold_normal_toGPU{};
+  TextureToGPUJob texture_gold_metallic_toGPU{};
+  TextureToGPUJob texture_gold_roughness_toGPU{};
+  TextureToGPUJob texture_gold_ao_toGPU{};
+
+  TextureToGPUJob texture_table_albedo_toGPU{};
+  TextureToGPUJob texture_table_normal_toGPU{};
+  TextureToGPUJob texture_table_metallic_toGPU{};
+  TextureToGPUJob texture_table_roughness_toGPU{};
+  TextureToGPUJob texture_table_ao_toGPU{};
+
+  TextureToGPUJob texture_mea_albedo_toGPU{};
+  TextureToGPUJob texture_mea_normal_toGPU{};
+  TextureToGPUJob texture_mea_metallic_toGPU{};
+  TextureToGPUJob texture_mea_roughness_toGPU{};
+  TextureToGPUJob texture_mea_ao_toGPU{};
+
+  TextureToGPUJob texture_lantern_albedo_toGPU{};
+  TextureToGPUJob texture_lantern_normal_toGPU{};
+  TextureToGPUJob texture_lantern_metallic_toGPU{};
+  TextureToGPUJob texture_lantern_roughness_toGPU{};
+
+  TextureToGPUJob texture_grass_toGPU{};
 };
 
 void HelloFinalScene::CreatePipelines() {
@@ -459,10 +596,10 @@ void HelloFinalScene::LoadTextures() {
   ZoneScoped;
 #endif
   catBaseColor.HDRTextureFromFile(catBaseColorFilePath_.data(), false);
-  // catNormal.LoadTextureAsync(catNormalFilePath_.data(), false, false);
-  // catMetallic.LoadTextureAsync(catMetallicFilePath_.data(), false, false);
-  // catRoughness.LoadTextureAsync(catRoughnessFilePath_.data(), false, false);
-  // catAo.LoadTextureAsync(catAoFilePath_.data(), false, false);
+  catNormal.TextureFromFile(catNormalFilePath_.data(), false);
+  catMetallic.TextureFromFile(catMetallicFilePath_.data(), false);
+  catRoughness.TextureFromFile(catRoughnessFilePath_.data(), false);
+  catAo.TextureFromFile(catAoFilePath_.data(), false);
 
   goldAlbedo.HDRTextureFromFile(goldAFilePath.data(), false);
   goldMetallic.TextureFromFile(goldMFilePath_.data(), false);
@@ -470,7 +607,7 @@ void HelloFinalScene::LoadTextures() {
   goldRoughness.TextureFromFile(goldRFilePath_.data(), false);
   goldAO.TextureFromFile(goldAOFilePath_.data(), false);
 
-  meaAlbedo.HDRTextureFromFileRepeat(meaAFilePath_.data());
+  meaAlbedo.TextureFromFileRepeat(meaAFilePath_.data());
   meaMetallic.TextureFromFileRepeat(meaMFilePath_.data());
   meaNormal.TextureFromFileRepeat(meaNFilePath_.data());
   meaRoughness.TextureFromFileRepeat(meaRFilePath_.data());
@@ -488,52 +625,353 @@ void HelloFinalScene::LoadTextures() {
   lanternRoughness.TextureFromFile(lanternRFilePath_.data(), false);
 
   grass_texture_.TextureFromFile(grass_texture_FilePath_, false);
+}
 
-  texture = ReadTextureJob(catNormalFilePath_.data(), &fb1);
-  texture2 = ReadTextureJob(catMetallicFilePath_.data(), &fb2);
-  texture3 = ReadTextureJob(catRoughnessFilePath_.data(), &fb3);
-  texture4 = ReadTextureJob(catAoFilePath_.data(), &fb4);
+void HelloFinalScene::LoadTexturesAsync() {
+#ifdef TRACY_ENABLE
+  ZoneScoped;
+#endif
+  read_texture_grass =
+      ReadTextureJob(grass_texture_FilePath_.data(), &filebuffer_grass);
 
-  job_system_texture.AddJob(&texture);
-  job_system_texture.AddJob(&texture2);
-  job_system_texture.AddJob(&texture3);
-  job_system_texture.AddJob(&texture4);
+  read_texture_cat_albedo =
+      ReadTextureJob(catBaseColorFilePath_.data(), &filebuffer_albedo_cat);
+  read_texture_cat_normal =
+      ReadTextureJob(catNormalFilePath_.data(), &filebuffer_normal_cat);
+  read_texture_cat_metallic =
+      ReadTextureJob(catMetallicFilePath_.data(), &filebuffer_metallic_cat);
+  read_texture_cat_roughness =
+      ReadTextureJob(catRoughnessFilePath_.data(), &filebuffer_roughness_cat);
+  read_texture_cat_ao =
+      ReadTextureJob(catAoFilePath_.data(), &filebuffer_ao_cat);
 
-  decompress_texture_ = DecompressTextureJob(&fb1, false, &tb1);
-  decompress_texture_.AddDependency(&texture);
-  decompress_texture2 = DecompressTextureJob(&fb2, false, &tb2);
-  decompress_texture2.AddDependency(&texture2);
-  decompress_texture3 = DecompressTextureJob(&fb3, false, &tb3);
-  decompress_texture3.AddDependency(&texture3);
-  decompress_texture4 = DecompressTextureJob(&fb4, false, &tb4);
-  decompress_texture4.AddDependency(&texture4);
+  read_texture_gold_albedo =
+      ReadTextureJob(goldAFilePath.data(), &filebuffer_albedo_gold);
+  read_texture_gold_normal =
+      ReadTextureJob(goldNFilePath_.data(), &filebuffer_normal_gold);
+  read_texture_gold_metallic =
+      ReadTextureJob(goldMFilePath_.data(), &filebuffer_metallic_gold);
+  read_texture_gold_roughness =
+      ReadTextureJob(goldRFilePath_.data(), &filebuffer_roughness_gold);
+  read_texture_gold_ao =
+      ReadTextureJob(goldAOFilePath_.data(), &filebuffer_ao_gold);
 
-  job_system_texture.AddJob(&decompress_texture_);
-  job_system_texture.AddJob(&decompress_texture2);
-  job_system_texture.AddJob(&decompress_texture3);
-  job_system_texture.AddJob(&decompress_texture4);
+  read_texture_table_albedo =
+      ReadTextureJob(tableAFilePath_.data(), &filebuffer_albedo_table);
+  read_texture_table_normal =
+      ReadTextureJob(tableNFilePath_.data(), &filebuffer_normal_table);
+  read_texture_table_metallic =
+      ReadTextureJob(tableMFilePath_.data(), &filebuffer_metallic_table);
+  read_texture_table_roughness =
+      ReadTextureJob(tableRFilePath_.data(), &filebuffer_roughness_table);
+  read_texture_table_ao =
+      ReadTextureJob(tableAOFilePath_.data(), &filebuffer_ao_table);
 
-  textToGPU1 = TextureToGPUJob(&tb1);
-  textToGPU1.AddDependency(&decompress_texture_);
-  textToGPU2 = TextureToGPUJob(&tb2);
-  textToGPU2.AddDependency(&decompress_texture2);
-  textToGPU3 = TextureToGPUJob(&tb3);
-  textToGPU3.AddDependency(&decompress_texture3);
-  textToGPU4 = TextureToGPUJob(&tb4);
-  textToGPU4.AddDependency(&decompress_texture4);
+  read_texture_mea_albedo =
+      ReadTextureJob(meaAFilePath_.data(), &filebuffer_albedo_mea);
+  read_texture_mea_normal =
+      ReadTextureJob(meaNFilePath_.data(), &filebuffer_normal_mea);
+  read_texture_mea_metallic =
+      ReadTextureJob(meaMFilePath_.data(), &filebuffer_metallic_mea);
+  read_texture_mea_roughness =
+      ReadTextureJob(meaRFilePath_.data(), &filebuffer_roughness_mea);
+  read_texture_mea_ao =
+      ReadTextureJob(meaAOFilePath_.data(), &filebuffer_ao_mea);
 
-  job_system_texture.AddJob(&textToGPU1);
-  job_system_texture.AddJob(&textToGPU2);
-  job_system_texture.AddJob(&textToGPU3);
-  job_system_texture.AddJob(&textToGPU4);
+  read_texture_lantern_albedo =
+      ReadTextureJob(lanternAFilePath_.data(), &filebuffer_albedo_lantern);
+  read_texture_lantern_normal =
+      ReadTextureJob(lanternNFilePath_.data(), &filebuffer_normal_lantern);
+  read_texture_lantern_metallic =
+      ReadTextureJob(lanternMFilePath_.data(), &filebuffer_metallic_lantern);
+  read_texture_lantern_roughness =
+      ReadTextureJob(lanternRFilePath_.data(), &filebuffer_roughness_lantern);
+
+  job_system_texture.AddJob(&read_texture_cat_albedo);
+  job_system_texture.AddJob(&read_texture_cat_normal);
+  job_system_texture.AddJob(&read_texture_cat_metallic);
+  job_system_texture.AddJob(&read_texture_cat_roughness);
+  job_system_texture.AddJob(&read_texture_cat_ao);
+
+  job_system_texture.AddJob(&read_texture_gold_albedo);
+  job_system_texture.AddJob(&read_texture_gold_normal);
+  job_system_texture.AddJob(&read_texture_gold_metallic);
+  job_system_texture.AddJob(&read_texture_gold_roughness);
+  job_system_texture.AddJob(&read_texture_gold_ao);
+
+  job_system_texture.AddJob(&read_texture_table_albedo);
+  job_system_texture.AddJob(&read_texture_table_normal);
+  job_system_texture.AddJob(&read_texture_table_metallic);
+  job_system_texture.AddJob(&read_texture_table_roughness);
+  job_system_texture.AddJob(&read_texture_table_ao);
+
+  job_system_texture.AddJob(&read_texture_mea_albedo);
+  job_system_texture.AddJob(&read_texture_mea_normal);
+  job_system_texture.AddJob(&read_texture_mea_metallic);
+  job_system_texture.AddJob(&read_texture_mea_roughness);
+  job_system_texture.AddJob(&read_texture_mea_ao);
+
+  job_system_texture.AddJob(&read_texture_lantern_albedo);
+  job_system_texture.AddJob(&read_texture_lantern_normal);
+  job_system_texture.AddJob(&read_texture_lantern_metallic);
+  job_system_texture.AddJob(&read_texture_lantern_roughness);
+
+  job_system_texture.AddJob(&read_texture_grass);
+
+  decompress_texture_cat_albedo = DecompressTextureJob(
+      &filebuffer_albedo_cat, false, &texturebuffer_albedo_cat);
+  decompress_texture_cat_albedo.AddDependency(&read_texture_cat_albedo);
+  decompress_texture_cat_normal = DecompressTextureJob(
+      &filebuffer_normal_cat, false, &texturebuffer_normal_cat);
+  decompress_texture_cat_normal.AddDependency(&read_texture_cat_normal);
+  decompress_texture_cat_metallic = DecompressTextureJob(
+      &filebuffer_metallic_cat, false, &texturebuffer_metallic_cat);
+  decompress_texture_cat_metallic.AddDependency(&read_texture_cat_metallic);
+  decompress_texture_cat_roughness = DecompressTextureJob(
+      &filebuffer_roughness_cat, false, &texturebuffer_roughness_cat);
+  decompress_texture_cat_roughness.AddDependency(&read_texture_cat_roughness);
+  decompress_texture_cat_ao =
+      DecompressTextureJob(&filebuffer_ao_cat, false, &texturebuffer_ao_cat);
+  decompress_texture_cat_ao.AddDependency(&read_texture_cat_ao);
+
+  decompress_texture_gold_albedo = DecompressTextureJob(
+      &filebuffer_albedo_gold, false, &texturebuffer_albedo_gold);
+  decompress_texture_gold_albedo.AddDependency(&read_texture_gold_albedo);
+  decompress_texture_gold_normal = DecompressTextureJob(
+      &filebuffer_normal_gold, false, &texturebuffer_normal_gold);
+  decompress_texture_gold_normal.AddDependency(&read_texture_gold_normal);
+  decompress_texture_gold_metallic = DecompressTextureJob(
+      &filebuffer_metallic_gold, false, &texturebuffer_metallic_gold);
+  decompress_texture_gold_metallic.AddDependency(&read_texture_gold_metallic);
+  decompress_texture_gold_roughness = DecompressTextureJob(
+      &filebuffer_roughness_gold, false, &texturebuffer_roughness_gold);
+  decompress_texture_gold_roughness.AddDependency(&read_texture_gold_roughness);
+  decompress_texture_gold_ao =
+      DecompressTextureJob(&filebuffer_ao_gold, false, &texturebuffer_ao_gold);
+  decompress_texture_gold_ao.AddDependency(&read_texture_gold_ao);
+
+  decompress_texture_table_albedo = DecompressTextureJob(
+      &filebuffer_albedo_table, false, &texturebuffer_albedo_table);
+  decompress_texture_table_albedo.AddDependency(&read_texture_table_albedo);
+  decompress_texture_table_normal = DecompressTextureJob(
+      &filebuffer_normal_table, false, &texturebuffer_normal_table);
+  decompress_texture_table_normal.AddDependency(&read_texture_table_normal);
+  decompress_texture_table_metallic = DecompressTextureJob(
+      &filebuffer_metallic_table, false, &texturebuffer_metallic_table);
+  decompress_texture_table_metallic.AddDependency(&read_texture_table_metallic);
+  decompress_texture_table_roughness = DecompressTextureJob(
+      &filebuffer_roughness_table, false, &texturebuffer_roughness_table);
+  decompress_texture_table_roughness.AddDependency(
+      &read_texture_table_roughness);
+  decompress_texture_table_ao = DecompressTextureJob(
+      &filebuffer_ao_table, false, &texturebuffer_ao_table);
+  decompress_texture_table_ao.AddDependency(&read_texture_table_ao);
+
+  decompress_texture_mea_albedo = DecompressTextureJob(
+      &filebuffer_albedo_mea, false, &texturebuffer_albedo_mea);
+  decompress_texture_mea_albedo.AddDependency(&read_texture_mea_albedo);
+  decompress_texture_mea_normal = DecompressTextureJob(
+      &filebuffer_normal_mea, false, &texturebuffer_normal_mea);
+  decompress_texture_mea_normal.AddDependency(&read_texture_mea_normal);
+  decompress_texture_mea_metallic = DecompressTextureJob(
+      &filebuffer_metallic_mea, false, &texturebuffer_metallic_mea);
+  decompress_texture_mea_metallic.AddDependency(&read_texture_mea_metallic);
+  decompress_texture_mea_roughness = DecompressTextureJob(
+      &filebuffer_roughness_mea, false, &texturebuffer_roughness_mea);
+  decompress_texture_mea_roughness.AddDependency(&read_texture_mea_roughness);
+  decompress_texture_mea_ao =
+      DecompressTextureJob(&filebuffer_ao_mea, false, &texturebuffer_ao_mea);
+  decompress_texture_mea_ao.AddDependency(&read_texture_mea_ao);
+
+  decompress_texture_lantern_albedo = DecompressTextureJob(
+      &filebuffer_albedo_lantern, false, &texturebuffer_albedo_lantern);
+  decompress_texture_lantern_albedo.AddDependency(&read_texture_lantern_albedo);
+  decompress_texture_lantern_normal = DecompressTextureJob(
+      &filebuffer_normal_lantern, false, &texturebuffer_normal_lantern);
+  decompress_texture_lantern_normal.AddDependency(&read_texture_lantern_normal);
+  decompress_texture_lantern_metallic = DecompressTextureJob(
+      &filebuffer_metallic_lantern, false, &texturebuffer_metallic_lantern);
+  decompress_texture_lantern_metallic.AddDependency(
+      &read_texture_lantern_metallic);
+  decompress_texture_lantern_roughness = DecompressTextureJob(
+      &filebuffer_roughness_lantern, false, &texturebuffer_roughness_lantern);
+  decompress_texture_lantern_roughness.AddDependency(
+      &read_texture_lantern_roughness);
+
+  decompress_texture_grass =
+      DecompressTextureJob(&filebuffer_grass, false, &texturebuffer_grass);
+  decompress_texture_grass.AddDependency(&read_texture_grass);
+
+  job_system_texture.AddJob(&decompress_texture_cat_albedo);
+  job_system_texture.AddJob(&decompress_texture_cat_normal);
+  job_system_texture.AddJob(&decompress_texture_cat_metallic);
+  job_system_texture.AddJob(&decompress_texture_cat_roughness);
+  job_system_texture.AddJob(&decompress_texture_cat_ao);
+
+  job_system_texture.AddJob(&decompress_texture_gold_albedo);
+  job_system_texture.AddJob(&decompress_texture_gold_normal);
+  job_system_texture.AddJob(&decompress_texture_gold_metallic);
+  job_system_texture.AddJob(&decompress_texture_gold_roughness);
+  job_system_texture.AddJob(&decompress_texture_gold_ao);
+
+  job_system_texture.AddJob(&decompress_texture_table_albedo);
+  job_system_texture.AddJob(&decompress_texture_table_normal);
+  job_system_texture.AddJob(&decompress_texture_table_metallic);
+  job_system_texture.AddJob(&decompress_texture_table_roughness);
+  job_system_texture.AddJob(&decompress_texture_table_ao);
+
+  job_system_texture.AddJob(&decompress_texture_mea_albedo);
+  job_system_texture.AddJob(&decompress_texture_mea_normal);
+  job_system_texture.AddJob(&decompress_texture_mea_metallic);
+  job_system_texture.AddJob(&decompress_texture_mea_roughness);
+  job_system_texture.AddJob(&decompress_texture_mea_ao);
+
+  job_system_texture.AddJob(&decompress_texture_lantern_albedo);
+  job_system_texture.AddJob(&decompress_texture_lantern_normal);
+  job_system_texture.AddJob(&decompress_texture_lantern_metallic);
+  job_system_texture.AddJob(&decompress_texture_lantern_roughness);
+
+  job_system_texture.AddJob(&decompress_texture_grass);
+
+  texture_cat_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_cat);
+  texture_cat_albedo_toGPU.srgb_ = true;
+  texture_cat_albedo_toGPU.AddDependency(&decompress_texture_cat_albedo);
+  texture_cat_normal_toGPU = TextureToGPUJob(&texturebuffer_normal_cat);
+  texture_cat_normal_toGPU.AddDependency(&decompress_texture_cat_normal);
+  texture_cat_metallic_toGPU = TextureToGPUJob(&texturebuffer_metallic_cat);
+  texture_cat_metallic_toGPU.AddDependency(&decompress_texture_cat_metallic);
+  texture_cat_roughness_toGPU = TextureToGPUJob(&texturebuffer_roughness_cat);
+  texture_cat_roughness_toGPU.AddDependency(&decompress_texture_cat_roughness);
+  texture_cat_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_cat);
+  texture_cat_ao_toGPU.AddDependency(&decompress_texture_cat_ao);
+
+  job_system_texture.AddJob(&texture_cat_albedo_toGPU);
+  job_system_texture.AddJob(&texture_cat_normal_toGPU);
+  job_system_texture.AddJob(&texture_cat_metallic_toGPU);
+  job_system_texture.AddJob(&texture_cat_roughness_toGPU);
+  job_system_texture.AddJob(&texture_cat_ao_toGPU);
+
+  texture_gold_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_gold);
+  texture_gold_albedo_toGPU.srgb_ = true;
+  texture_gold_albedo_toGPU.AddDependency(&decompress_texture_gold_albedo);
+  texture_gold_normal_toGPU = TextureToGPUJob(&texturebuffer_normal_gold);
+  texture_gold_normal_toGPU.AddDependency(&decompress_texture_gold_normal);
+  texture_gold_metallic_toGPU = TextureToGPUJob(&texturebuffer_metallic_gold);
+  texture_gold_metallic_toGPU.AddDependency(&decompress_texture_gold_metallic);
+  texture_gold_roughness_toGPU = TextureToGPUJob(&texturebuffer_roughness_gold);
+  texture_gold_roughness_toGPU.AddDependency(
+      &decompress_texture_gold_roughness);
+  texture_gold_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_gold);
+  texture_gold_ao_toGPU.AddDependency(&decompress_texture_gold_ao);
+
+  job_system_texture.AddJob(&texture_gold_albedo_toGPU);
+  job_system_texture.AddJob(&texture_gold_normal_toGPU);
+  job_system_texture.AddJob(&texture_gold_metallic_toGPU);
+  job_system_texture.AddJob(&texture_gold_roughness_toGPU);
+  job_system_texture.AddJob(&texture_gold_ao_toGPU);
+
+  texture_table_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_table);
+  texture_table_albedo_toGPU.srgb_ = true;
+  texture_table_albedo_toGPU.AddDependency(&decompress_texture_table_albedo);
+  texture_table_normal_toGPU = TextureToGPUJob(&texturebuffer_normal_table);
+  texture_table_normal_toGPU.AddDependency(&decompress_texture_table_normal);
+  texture_table_metallic_toGPU = TextureToGPUJob(&texturebuffer_metallic_table);
+  texture_table_metallic_toGPU.AddDependency(
+      &decompress_texture_table_metallic);
+  texture_table_roughness_toGPU =
+      TextureToGPUJob(&texturebuffer_roughness_table);
+  texture_table_roughness_toGPU.AddDependency(
+      &decompress_texture_table_roughness);
+  texture_table_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_table);
+  texture_table_ao_toGPU.AddDependency(&decompress_texture_table_ao);
+
+  job_system_texture.AddJob(&texture_table_albedo_toGPU);
+  job_system_texture.AddJob(&texture_table_normal_toGPU);
+  job_system_texture.AddJob(&texture_table_metallic_toGPU);
+  job_system_texture.AddJob(&texture_table_roughness_toGPU);
+  job_system_texture.AddJob(&texture_table_ao_toGPU);
+
+  texture_mea_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_mea);
+  texture_mea_albedo_toGPU.isRepeated = true;
+  texture_mea_albedo_toGPU.srgb_ = true;
+  texture_mea_albedo_toGPU.AddDependency(&decompress_texture_mea_albedo);
+  texture_mea_normal_toGPU = TextureToGPUJob(&texturebuffer_normal_mea);
+  texture_mea_normal_toGPU.isRepeated = true;
+  texture_mea_normal_toGPU.AddDependency(&decompress_texture_mea_normal);
+  texture_mea_metallic_toGPU = TextureToGPUJob(&texturebuffer_metallic_mea);
+  texture_mea_metallic_toGPU.isRepeated = true;
+  texture_mea_metallic_toGPU.AddDependency(&decompress_texture_mea_metallic);
+  texture_mea_roughness_toGPU = TextureToGPUJob(&texturebuffer_roughness_mea);
+  texture_mea_roughness_toGPU.isRepeated = true;
+  texture_mea_roughness_toGPU.AddDependency(&decompress_texture_mea_roughness);
+  texture_mea_ao_toGPU = TextureToGPUJob(&texturebuffer_ao_mea);
+  texture_mea_ao_toGPU.isRepeated = true;
+  texture_mea_ao_toGPU.AddDependency(&decompress_texture_mea_ao);
+
+  job_system_texture.AddJob(&texture_mea_albedo_toGPU);
+  job_system_texture.AddJob(&texture_mea_normal_toGPU);
+  job_system_texture.AddJob(&texture_mea_metallic_toGPU);
+  job_system_texture.AddJob(&texture_mea_roughness_toGPU);
+  job_system_texture.AddJob(&texture_mea_ao_toGPU);
+
+  texture_lantern_albedo_toGPU = TextureToGPUJob(&texturebuffer_albedo_lantern);
+  texture_lantern_albedo_toGPU.srgb_ = true;
+  texture_lantern_albedo_toGPU.AddDependency(
+      &decompress_texture_lantern_albedo);
+  texture_lantern_normal_toGPU = TextureToGPUJob(&texturebuffer_normal_lantern);
+  texture_lantern_normal_toGPU.AddDependency(
+      &decompress_texture_lantern_normal);
+  texture_lantern_metallic_toGPU =
+      TextureToGPUJob(&texturebuffer_metallic_lantern);
+  texture_lantern_metallic_toGPU.AddDependency(
+      &decompress_texture_lantern_metallic);
+  texture_lantern_roughness_toGPU =
+      TextureToGPUJob(&texturebuffer_roughness_lantern);
+  texture_lantern_roughness_toGPU.AddDependency(
+      &decompress_texture_lantern_roughness);
+
+  job_system_texture.AddJob(&texture_lantern_albedo_toGPU);
+  job_system_texture.AddJob(&texture_lantern_normal_toGPU);
+  job_system_texture.AddJob(&texture_lantern_metallic_toGPU);
+  job_system_texture.AddJob(&texture_lantern_roughness_toGPU);
+
+  texture_grass_toGPU = TextureToGPUJob(&texturebuffer_grass);
+  texture_grass_toGPU.AddDependency(&decompress_texture_grass);
+  job_system_texture.AddJob(&texture_grass_toGPU);
 
   job_system_texture.LaunchWorkers(3);
   job_system_texture.JoinWorkers();
 
-  catNormal.id = tb1.id;
-  catMetallic.id = tb2.id;
-  catRoughness.id = tb3.id;
-  catAo.id = tb4.id;
+  catBaseColor.id = texturebuffer_albedo_cat.id;
+  catNormal.id = texturebuffer_normal_cat.id;
+  catMetallic.id = texturebuffer_metallic_cat.id;
+  catRoughness.id = texturebuffer_roughness_cat.id;
+  catAo.id = texturebuffer_ao_cat.id;
+
+  goldAlbedo.id = texturebuffer_albedo_gold.id;
+  goldNormal.id = texturebuffer_normal_gold.id;
+  goldMetallic.id = texturebuffer_metallic_gold.id;
+  goldRoughness.id = texturebuffer_roughness_gold.id;
+  goldAO.id = texturebuffer_ao_gold.id;
+
+  TableAlbedo.id = texturebuffer_albedo_table.id;
+  TableNormal.id = texturebuffer_normal_table.id;
+  TableMetallic.id = texturebuffer_metallic_table.id;
+  TableRoughness.id = texturebuffer_roughness_table.id;
+  TableAO.id = texturebuffer_ao_table.id;
+
+  meaAlbedo.id = texturebuffer_albedo_mea.id;
+  meaNormal.id = texturebuffer_normal_mea.id;
+  meaMetallic.id = texturebuffer_metallic_mea.id;
+  meaRoughness.id = texturebuffer_roughness_mea.id;
+  meaAO.id = texturebuffer_ao_mea.id;
+
+  lanternAlbedo.id = texturebuffer_albedo_lantern.id;
+  lanternNormal.id = texturebuffer_normal_lantern.id;
+  lanternMetallic.id = texturebuffer_metallic_lantern.id;
+  lanternRoughness.id = texturebuffer_roughness_lantern.id;
+
+  grass_texture_.id = texturebuffer_grass.id;
 }
 
 float ourLerp(float a, float b, float f) { return a + f * (b - a); }
@@ -555,7 +993,8 @@ void HelloFinalScene::Begin() {
 
   CreatePipelines();
   LoadModels();
-  LoadTextures();
+  //LoadTextures();
+  LoadTexturesAsync();
 
   grass_.SetUp();
   hdr_cubemap.HDRTextureFromFile(hdr_cubemapFilePath_.data());
@@ -648,9 +1087,10 @@ void HelloFinalScene::Begin() {
     glTexParameteri(
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
         GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would
-                            // otherwise sample repeated texture values!
+                            // otherwise sample repeated read_texture_cat_normal
+                            // values!
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // attach texture to framebuffer
+    // attach read_texture_cat_normal to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
                            GL_TEXTURE_2D, colorBuffers[i], 0);
   }
@@ -685,7 +1125,8 @@ void HelloFinalScene::Begin() {
     glTexParameteri(
         GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
         GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would
-                            // otherwise sample repeated texture values!
+                            // otherwise sample repeated read_texture_cat_normal
+                            // values!
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            pingpongColorbuffers[i], 0);
@@ -813,7 +1254,7 @@ void HelloFinalScene::Begin() {
     ssaoKernel.push_back(sample);
   }
 
-  // generate noise texture
+  // generate noise read_texture_cat_normal
   // ----------------------
 
   for (unsigned int i = 0; i < 16; i++) {
@@ -976,7 +1417,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   shader.SetFloat("metallic", flower_metalic);
   shader.SetFloat("roughness", flower_roughness);
   shader.SetFloat("ao", flower_ao);
-  goldAlbedo.BindTextureHDR(GL_TEXTURE3);
+  goldAlbedo.BindTexture(GL_TEXTURE3);
   goldNormal.BindTexture(GL_TEXTURE4);
   flower_.Draw(shader.program_);
 
@@ -986,7 +1427,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::scale(model, glm::vec3(4.2f));
   shader.SetMat4("model", model);
   shader.SetBool("isCustomMaterial", false);
-  catBaseColor.BindTextureHDR(GL_TEXTURE3);
+  catBaseColor.BindTexture(GL_TEXTURE3);
   catNormal.BindTexture(GL_TEXTURE4);
   catMetallic.BindTexture(GL_TEXTURE5);
   catRoughness.BindTexture(GL_TEXTURE6);
@@ -998,7 +1439,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::scale(model, glm::vec3(1.0f, 1.0f, 0.6f));
   model = glm::rotate(model, 1.58f, glm::vec3(0.0f, 1.0f, 0.0f));
   shader.SetMat4("model", model);
-  TableAlbedo.BindTextureHDR(GL_TEXTURE3);
+  TableAlbedo.BindTexture(GL_TEXTURE3);
   TableNormal.BindTexture(GL_TEXTURE4);
   TableMetallic.BindTexture(GL_TEXTURE5);
   TableRoughness.BindTexture(GL_TEXTURE6);
@@ -1009,7 +1450,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::translate(model, glm::vec3(-1.6f, -0.52f, -2.6f));
   model = glm::scale(model, glm::vec3(2.0f));
   shader.SetMat4("model", model);
-  lanternAlbedo.BindTextureHDR(GL_TEXTURE3);
+  lanternAlbedo.BindTexture(GL_TEXTURE3);
   lanternNormal.BindTexture(GL_TEXTURE4);
   lanternMetallic.BindTexture(GL_TEXTURE5);
   lanternRoughness.BindTexture(GL_TEXTURE6);
@@ -1026,7 +1467,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::translate(model, glm::vec3(-0.6f, -0.9f, -1.8f));
   model = glm::scale(model, glm::vec3(2.8f));
   shader.SetMat4("model", model);
-  goldAlbedo.BindTextureHDR(GL_TEXTURE3);
+  goldAlbedo.BindTexture(GL_TEXTURE3);
   goldNormal.BindTexture(GL_TEXTURE4);
   goldMetallic.BindTexture(GL_TEXTURE5);
   goldRoughness.BindTexture(GL_TEXTURE6);
@@ -1040,7 +1481,7 @@ void HelloFinalScene::renderScene(Pipeline& shader) {
   model = glm::translate(model, glm::vec3(1.0f, -4.0f, 0.0f));
   shader.SetMat4("model", model);
   shader.SetVec3("lightColors[0]", glm::vec3(0.0f));
-  meaAlbedo.BindTextureHDR(GL_TEXTURE3);
+  meaAlbedo.BindTexture(GL_TEXTURE3);
   meaNormal.BindTexture(GL_TEXTURE4);
   meaMetallic.BindTexture(GL_TEXTURE5);
   meaRoughness.BindTexture(GL_TEXTURE6);
@@ -1112,7 +1553,7 @@ void HelloFinalScene::Update(float dt) {
   renderScene(shaderGeometryPass);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // 2. generate SSAO texture
+  // 2. generate SSAO read_texture_cat_normal
   // ------------------------
   glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -1132,7 +1573,7 @@ void HelloFinalScene::Update(float dt) {
   SSAOquad_.RenderQuadbrdf();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // 3. blur SSAO texture to remove noise
+  // 3. blur SSAO read_texture_cat_normal to remove noise
   // ------------------------------------
   glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -1315,7 +1756,7 @@ void HelloFinalScene::OnEvent(const SDL_Event& event) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            // attach texture to framebuffer
+            // attach read_texture_cat_normal to framebuffer
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
                                    GL_TEXTURE_2D, colorBuffers[i], 0);
           }

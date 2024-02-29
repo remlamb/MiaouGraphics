@@ -89,7 +89,7 @@ void JobSystem::LaunchWorkers(const int worker_count) {
         break;
     }
   }
-	static bool is_running = true;
+  static bool is_running = true;
   while (is_running) {
     Job* job = nullptr;
 
@@ -140,7 +140,6 @@ void ReadTextureJob::ReadTextureAsync(const std::string_view file_path) {
   file_buffer_->filesize_ = static_cast<int>(file.tellg());
   file.seekg(0, std::ios::beg);
   file_buffer_->data_ = new unsigned char[file_buffer_->filesize_];
-  std::cout << "file read" << '\n';
 
   file.read(reinterpret_cast<char*>(file_buffer_->data_),
             file_buffer_->filesize_);
@@ -161,7 +160,6 @@ void DecompressTextureJob::DecompressTexture(unsigned char* data) {
   texture_buffer_->imgData_ = stbi_load_from_memory(
       data, file_buffer_->filesize_, &texture_buffer_->width_,
       &texture_buffer_->height_, &texture_buffer_->nbrChannels_, 0);
-  std::cout << "file load" << '\n';
 }
 
 void DecompressTextureJob::Work() {
@@ -178,11 +176,20 @@ void TextureToGPUJob::TextureToGPU() {
   // Load Texture
   glGenTextures(1, &texture_buffer_->id);
   glBindTexture(GL_TEXTURE_2D, texture_buffer_->id);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                  GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  if (!isRepeated) {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  } else
+  {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  }
 
   GLint internalFormat = 0;
   GLenum format = 0;
@@ -208,8 +215,6 @@ void TextureToGPUJob::TextureToGPU() {
                texture_buffer_->imgData_);
 
   glGenerateMipmap(GL_TEXTURE_2D);
-  std::cout << "file UP" << '\n';
-  std::cout << texture_buffer_->id << '\n';
   stbi_image_free(texture_buffer_->imgData_);
 }
 

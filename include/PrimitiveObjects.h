@@ -11,8 +11,8 @@ class PrimitiveObjects {
   GLuint quad_vao_ = 0;
   GLuint quad_vbo_ = 0;
   const std::array<float, 30> transparentVertices_ = {
-      // positions         // texture Coords (swapped y coordinates because
-      // texture is flipped upside down)
+      // positions         // read_texture_cat_normal Coords (swapped y coordinates because
+      // read_texture_cat_normal is flipped upside down)
       0.0f, 0.5f, 0.0f, 0.0f,  0.0f, 0.0f, -0.5f, 0.0f,
       0.0f, 1.0f, 1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
 
@@ -71,7 +71,7 @@ class PrimitiveObjects {
   unsigned int cubeVAO = 0;
   unsigned int cubeVBO = 0;
   float vertices[288] = {
-      // positions          // normals           // texture coords
+      // positions          // normals           // read_texture_cat_normal coords
       -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.5f,  -0.5f,
       -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
       0.0f,  -1.0f, 1.0f,  1.0f,  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
@@ -112,7 +112,7 @@ class PrimitiveObjects {
   unsigned int indexCount;
 
   float brdfQuadVertices[20] = {
-      // positions        // texture Coords
+      // positions        // read_texture_cat_normal Coords
       -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
       1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
   };
