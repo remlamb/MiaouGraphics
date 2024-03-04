@@ -1,7 +1,9 @@
 #include "Mesh.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <Tracy.hpp>
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
 #include <iostream>
 
 #include "stb_image.h"

@@ -43,8 +43,6 @@ class HelloCubemaps final : public Scene {
   const std::string_view grassFragmentShaderFilePath_ =
       "data/shaders/hello_model/moving_grass.frag";
   Pipeline grass_pipeline;
-  const std::string_view fern_model_path = "data/model/Fern/fern_new.obj";
-  Model fern_;
 
   Camera camera_;
 
@@ -59,6 +57,10 @@ class HelloCubemaps final : public Scene {
   Texture grass_texture_;
   const std::string_view grass_texture_FilePath_ =
       "data/textures/stylized_grass.png";
+
+  Texture texture_;
+  const std::string_view texture_FilePath_ =
+      "data/textures/Gold/gold_basecolor.png";
 
   const std::string_view grass2dVertexShaderFilePath_ =
       "data/shaders/hello_model/moving_grass2d.vert";
@@ -98,12 +100,14 @@ void HelloCubemaps::Begin() {
   grass_texture_.TextureFromFile(grass_texture_FilePath_);
   grass_texture_.BindTexture(GL_TEXTURE0);
 
+  texture_.TextureFromFile(texture_FilePath_);
+
+
   ourModel_.isInverted();
   ourModel_.loadModel(model_path.data());
 
   cat_.loadModel(cat_model_path.data());
 
-  fern_.loadModel(fern_model_path.data());
 
   projection =
       glm::perspective(glm::radians(50.0f), 1280.0f / 720.0f, 0.1f, 100.0f);
@@ -159,6 +163,7 @@ void HelloCubemaps::Update(float dt) {
   model_pipeline.SetInt("textureMode", cubemaps_.texture_mode_);
   model_pipeline.SetInt("skybox", 10);
 
+  texture_.BindTexture(GL_TEXTURE0);
   cat_.Draw(model_pipeline.program_);
 
   float time = 100 * timer_;
@@ -170,7 +175,6 @@ void HelloCubemaps::Update(float dt) {
   grass_pipeline.SetMat4("model", model);
   grass_pipeline.SetMat4("view", view);
   grass_pipeline.SetMat4("projection", projection);
-  fern_.Draw(grass_pipeline.program_);
 
   view = glm::mat4(
       glm::mat3(camera_.view_));  // remove translation from the view matrix

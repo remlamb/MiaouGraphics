@@ -21,7 +21,9 @@
 #include "Model.h"
 #include "PrimitiveObjects.h"
 #include "Shadowmap.h"
+#ifdef TRACY_ENABLE
 #include "Tracy.hpp"
+#endif
 #include "engine.h"
 #include "file_utility.h"
 #include "pipeline.h"
@@ -63,13 +65,6 @@ class HelloFinalScene final : public Scene {
   float timer_ = 0.0f;
 
   Cubemaps cubemaps_;
-
-  std::vector<std::string> faces{"data/textures/xiequ_yuan/right.png",
-                                 "data/textures/xiequ_yuan/left.png",
-                                 "data/textures/xiequ_yuan/top.png",
-                                 "data/textures/xiequ_yuan/bottom.png",
-                                 "data/textures/xiequ_yuan/front.png",
-                                 "data/textures/xiequ_yuan/back.png"};
 
   const std::string_view cubemapsVertexShaderFilePath_ =
       "data/shaders/hello_cubemaps/cubemaps.vert";
@@ -226,7 +221,7 @@ class HelloFinalScene final : public Scene {
 
   Texture goldAO;
   const std::string_view goldAOFilePath_ =
-      "data/textures/Aluminum/aluminum_ao.png";
+      "data/textures/Gold/gold_metallic.png";
 
   PrimitiveObjects cube_;
   PrimitiveObjects sphere_;
@@ -366,11 +361,6 @@ class HelloFinalScene final : public Scene {
 
   // MultiThreading
   JobSystem job_system_texture;
-
-  // meaMetallic.TextureFromFileRepeat(meaMFilePath_.data());
-  // meaNormal.TextureFromFileRepeat(meaNFilePath_.data());
-  // meaRoughness.TextureFromFileRepeat(meaRFilePath_.data());
-  // meaAO.TextureFromFileRepeat(meaAOFilePath_.data());
 
   ReadTextureJob read_texture_cat_albedo{};
   ReadTextureJob read_texture_cat_normal{};

@@ -1,6 +1,8 @@
 #include "pipeline.h"
 
-#include <Tracy.hpp>
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
 
 namespace gpr5300 {
 

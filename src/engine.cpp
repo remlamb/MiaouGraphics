@@ -7,7 +7,9 @@
 
 #include <cassert>
 #include <chrono>
-#include <Tracy.hpp>
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
 #include <glm/vec2.hpp>
 
 namespace gpr5300 {

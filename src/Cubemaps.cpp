@@ -1,7 +1,9 @@
 #include "Cubemaps.h"
 
 #include <stb_image.h>
-#include <Tracy.hpp>
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
 
 unsigned int Cubemaps::loadCubemap(std::vector<std::string> faces) {
   unsigned int textureID;
